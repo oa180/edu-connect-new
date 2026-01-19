@@ -17,8 +17,14 @@ function registerSocketHandlers(io, socket) {
 
   socket.on('group:message', async ({ groupId, content }) => {
     const gid = parseInt(groupId, 10)
-    const member = await db.query('SELECT 1 FROM ChatGroupMember WHERE groupId = ? AND userId = ? LIMIT 1', [gid, userId])
-    if (!member[0]) return
+    const memberRows = await db.query('SELECT canPost FROM ChatGroupMember WHERE groupId = ? AND userId = ? LIMIT 1', [gid, userId])
+    if (!memberRows[0]) return
+    const groupRows = await db.query('SELECT adminOnly FROM ChatGroup WHERE id = ? LIMIT 1', [gid])
+    const group = groupRows[0]
+    const canPost = !!memberRows[0].canPost
+    const isAdminOnly = !!(group && group.adminOnly)
+    const isAdmin = socket.user.role === 'ADMIN'
+    if ((isAdminOnly && !isAdmin) || !canPost) return
     await db.query('INSERT INTO GroupMessage (groupId, senderId, content) VALUES (?, ?, ?)', [gid, userId, content])
     const rows = await db.query('SELECT * FROM GroupMessage WHERE groupId = ? AND senderId = ? ORDER BY id DESC LIMIT 1', [gid, userId])
     const msg = rows[0]

@@ -1,27 +1,33 @@
 const bcrypt = require('bcryptjs')
 const db = require('../../db.js')
 
-async function createUser({ email, password, role, name }) {
+async function createUser({ email, password, role, name, phoneNumber, grade, major }) {
   const hash = await bcrypt.hash(password, 10)
-  await db.query('INSERT INTO `User` (email, password, role, name, createdAt, updatedAt) VALUES (?, ?, ?, ?, NOW(), NOW())', [email, hash, role, name || null])
-  const rows = await db.query('SELECT id, email, name, role, createdAt, updatedAt FROM `User` WHERE email = ? LIMIT 1', [email])
+  await db.query(
+    'INSERT INTO `User` (email, password, role, name, phoneNumber, grade, major, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
+    [email, hash, role, name || null, phoneNumber || null, grade || null, major || null]
+  )
+  const rows = await db.query('SELECT id, email, name, phoneNumber, grade, major, role, createdAt, updatedAt FROM `User` WHERE email = ? LIMIT 1', [email])
   return rows[0]
 }
 
-async function updateUser(id, { email, password, role, name }) {
+async function updateUser(id, { email, password, role, name, phoneNumber, grade, major }) {
   const fields = []
   const params = []
   if (email) { fields.push('email = ?'); params.push(email) }
   if (password) { fields.push('password = ?'); params.push(await bcrypt.hash(password, 10)) }
   if (role) { fields.push('role = ?'); params.push(role) }
   if (typeof name !== 'undefined') { fields.push('name = ?'); params.push(name) }
+  if (typeof phoneNumber !== 'undefined') { fields.push('phoneNumber = ?'); params.push(phoneNumber) }
+  if (typeof grade !== 'undefined') { fields.push('grade = ?'); params.push(grade) }
+  if (typeof major !== 'undefined') { fields.push('major = ?'); params.push(major) }
   if (!fields.length) {
-    const rows = await db.query('SELECT id, email, name, role, createdAt, updatedAt FROM `User` WHERE id = ? LIMIT 1', [id])
+    const rows = await db.query('SELECT id, email, name, phoneNumber, grade, major, role, createdAt, updatedAt FROM `User` WHERE id = ? LIMIT 1', [id])
     return rows[0]
   }
   params.push(id)
   await db.query(`UPDATE \`User\` SET ${fields.join(', ')} WHERE id = ?`, params)
-  const rows = await db.query('SELECT id, email, name, role, createdAt, updatedAt FROM `User` WHERE id = ? LIMIT 1', [id])
+  const rows = await db.query('SELECT id, email, name, phoneNumber, grade, major, role, createdAt, updatedAt FROM `User` WHERE id = ? LIMIT 1', [id])
   return rows[0]
 }
 
@@ -58,7 +64,7 @@ module.exports = { createUser, updateUser, deleteUser, assignStudent, createGrou
 
 // New admin features
 async function getAllUsers() {
-  return db.query('SELECT id, email, name, role, createdAt FROM `User` ORDER BY id DESC')
+  return db.query('SELECT id, email, name, phoneNumber, grade, major, role, createdAt FROM `User` ORDER BY id DESC')
 }
 
 async function getAllGroups() {

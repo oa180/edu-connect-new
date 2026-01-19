@@ -1,5 +1,22 @@
 const db = require('../../db.js')
 
+async function getChatUsers(currentUser) {
+  if (currentUser.role === 'ADMIN') {
+    return db.query('SELECT id, email, name, role FROM `User` WHERE id <> ? ORDER BY id DESC', [currentUser.id])
+  }
+  if (currentUser.role === 'TEACHER') {
+    return db.query(
+      'SELECT u.id, u.email, u.name, u.role FROM TeacherStudent ts JOIN `User` u ON u.id = ts.studentId WHERE ts.teacherId = ? ORDER BY u.id DESC',
+      [currentUser.id]
+    )
+  }
+  // STUDENT
+  return db.query(
+    'SELECT u.id, u.email, u.name, u.role FROM TeacherStudent ts JOIN `User` u ON u.id = ts.teacherId WHERE ts.studentId = ? ORDER BY u.id DESC',
+    [currentUser.id]
+  )
+}
+
 async function getPrivateMessages(userId, otherId, { skip, limit }) {
   const rel = await db.query(
     'SELECT 1 FROM TeacherStudent WHERE (teacherId = ? AND studentId = ?) OR (teacherId = ? AND studentId = ?) LIMIT 1',
@@ -30,4 +47,4 @@ async function getGroupMessages(userId, groupId, { skip, limit }) {
   return { items: items.reverse(), total }
 }
 
-module.exports = { getPrivateMessages, getGroupMessages }
+module.exports = { getChatUsers, getPrivateMessages, getGroupMessages }

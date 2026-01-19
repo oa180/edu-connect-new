@@ -16,7 +16,23 @@ const openapiSpec = {
         bearerFormat: 'JWT'
       }
     },
+    '/chat/users': {
+      get: {
+        tags: ['Chat'], summary: 'List chat users based on role',
+        responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/User' } } } } } }
+      }
+    },
     schemas: {
+      User: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer' },
+          email: { type: 'string' },
+          name: { type: 'string', nullable: true },
+          role: { type: 'string', enum: ['ADMIN','TEACHER','STUDENT'] },
+          createdAt: { type: 'string', format: 'date-time' }
+        }
+      },
       LoginRequest: {
         type: 'object', required: ['email','password'],
         properties: { email: { type: 'string', format: 'email' }, password: { type: 'string', minLength: 6 } }
@@ -26,23 +42,25 @@ const openapiSpec = {
         properties: {
           accessToken: { type: 'string' },
           refreshToken: { type: 'string' },
-          user: { type: 'object', properties: { id: { type: 'integer' }, email: { type: 'string' }, role: { type: 'string', enum: ['ADMIN','TEACHER','STUDENT'] } } }
+          user: { type: 'object', properties: { id: { type: 'integer' }, email: { type: 'string' }, name: { type: 'string', nullable: true }, role: { type: 'string', enum: ['ADMIN','TEACHER','STUDENT'] } } }
         }
       },
       RefreshRequest: { type: 'object', required: ['refreshToken'], properties: { refreshToken: { type: 'string' } } },
       LogoutRequest: { type: 'object', required: ['refreshToken'], properties: { refreshToken: { type: 'string' } } },
       CreateUserRequest: {
         type: 'object', required: ['email','password','role'],
-        properties: { email: { type: 'string', format: 'email' }, password: { type: 'string', minLength: 6 }, role: { type: 'string', enum: ['ADMIN','TEACHER','STUDENT'] } }
+        properties: { email: { type: 'string', format: 'email' }, password: { type: 'string', minLength: 6 }, role: { type: 'string', enum: ['ADMIN','TEACHER','STUDENT'] }, name: { type: 'string' } }
       },
       UpdateUserRequest: {
         type: 'object',
-        properties: { email: { type: 'string', format: 'email' }, password: { type: 'string', minLength: 6 }, role: { type: 'string', enum: ['ADMIN','TEACHER','STUDENT'] } }
+        properties: { email: { type: 'string', format: 'email' }, password: { type: 'string', minLength: 6 }, role: { type: 'string', enum: ['ADMIN','TEACHER','STUDENT'] }, name: { type: 'string' } }
       },
       AssignStudentRequest: { type: 'object', required: ['teacherId','studentId'], properties: { teacherId: { type: 'integer' }, studentId: { type: 'integer' } } },
       TeacherSelfAssignRequest: { type: 'object', required: ['studentId'], properties: { studentId: { type: 'integer' } } },
       CreateGroupRequest: { type: 'object', required: ['name'], properties: { name: { type: 'string' } } },
       AddGroupMembersRequest: { type: 'object', required: ['userIds'], properties: { userIds: { type: 'array', items: { type: 'integer' } } } },
+      UpdateGroupSettingsRequest: { type: 'object', required: ['adminOnly'], properties: { adminOnly: { type: 'boolean' } } },
+      UpdateMemberPostingRequest: { type: 'object', required: ['canPost'], properties: { canPost: { type: 'boolean' } } },
       PaginatedMessages: {
         type: 'object', properties: {
           items: { type: 'array', items: { type: 'object', properties: { id: { type: 'integer' }, senderId: { type: 'integer' }, receiverId: { type: 'integer' }, content: { type: 'string' }, createdAt: { type: 'string', format: 'date-time' }, isRead: { type: 'boolean' } } } },
@@ -75,6 +93,10 @@ const openapiSpec = {
       }
     },
     '/admin/users': {
+      get: {
+        tags: ['Admin'], summary: 'List users',
+        responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/User' } } } } } }
+      },
       post: {
         tags: ['Admin'], summary: 'Create user',
         requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/CreateUserRequest' } } } },
@@ -106,6 +128,17 @@ const openapiSpec = {
         tags: ['Admin'], summary: 'Create group',
         requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/CreateGroupRequest' } } } },
         responses: { '201': { description: 'Created' } }
+      },
+      get: {
+        tags: ['Admin'], summary: 'List groups',
+        responses: { '200': { description: 'OK' } }
+      }
+    },
+    '/admin/groups/{id}': {
+      delete: {
+        tags: ['Admin'], summary: 'Delete group',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { '204': { description: 'Deleted' } }
       }
     },
     '/admin/groups/{id}/members': {
@@ -114,6 +147,53 @@ const openapiSpec = {
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
         requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/AddGroupMembersRequest' } } } },
         responses: { '200': { description: 'Updated' } }
+      }
+    },
+    '/admin/groups/{id}/members/{userId}': {
+      delete: {
+        tags: ['Admin'], summary: 'Remove member from group',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+          { name: 'userId', in: 'path', required: true, schema: { type: 'integer' } }
+        ],
+        responses: { '204': { description: 'Removed' } }
+      }
+    },
+    '/admin/groups/{id}/settings': {
+      patch: {
+        tags: ['Admin'], summary: 'Update group settings (adminOnly)',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/UpdateGroupSettingsRequest' } } } },
+        responses: { '200': { description: 'OK' } }
+      }
+    },
+    '/admin/groups/{id}/members/{userId}/posting': {
+      patch: {
+        tags: ['Admin'], summary: 'Enable/disable member posting',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+          { name: 'userId', in: 'path', required: true, schema: { type: 'integer' } }
+        ],
+        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/UpdateMemberPostingRequest' } } } },
+        responses: { '200': { description: 'OK' } }
+      }
+    },
+    '/admin/groups/{groupId}/messages/{messageId}/pin': {
+      post: {
+        tags: ['Admin'], summary: 'Pin message',
+        parameters: [
+          { name: 'groupId', in: 'path', required: true, schema: { type: 'integer' } },
+          { name: 'messageId', in: 'path', required: true, schema: { type: 'integer' } }
+        ],
+        responses: { '200': { description: 'OK' } }
+      },
+      delete: {
+        tags: ['Admin'], summary: 'Unpin message',
+        parameters: [
+          { name: 'groupId', in: 'path', required: true, schema: { type: 'integer' } },
+          { name: 'messageId', in: 'path', required: true, schema: { type: 'integer' } }
+        ],
+        responses: { '200': { description: 'OK' } }
       }
     },
     '/teacher/students': {
