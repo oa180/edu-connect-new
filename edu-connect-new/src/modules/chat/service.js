@@ -2,17 +2,17 @@ const db = require('../../db.js')
 
 async function getChatUsers(currentUser) {
   if (currentUser.role === 'ADMIN') {
-    return db.query('SELECT id, email, name, role FROM `User` WHERE id <> ? ORDER BY id DESC', [currentUser.id])
+    return db.query('SELECT id, email, name, phoneNumber, grade, major, role FROM `User` WHERE id <> ? ORDER BY id DESC', [currentUser.id])
   }
   if (currentUser.role === 'TEACHER') {
     return db.query(
-      'SELECT u.id, u.email, u.name, u.role FROM TeacherStudent ts JOIN `User` u ON u.id = ts.studentId WHERE ts.teacherId = ? ORDER BY u.id DESC',
+      'SELECT u.id, u.email, u.name, u.phoneNumber, u.grade, u.major, u.role FROM TeacherStudent ts JOIN `User` u ON u.id = ts.studentId WHERE ts.teacherId = ? ORDER BY u.id DESC',
       [currentUser.id]
     )
   }
   // STUDENT
   return db.query(
-    'SELECT u.id, u.email, u.name, u.role FROM TeacherStudent ts JOIN `User` u ON u.id = ts.teacherId WHERE ts.studentId = ? ORDER BY u.id DESC',
+    'SELECT u.id, u.email, u.name, u.phoneNumber, u.grade, u.major, u.role FROM TeacherStudent ts JOIN `User` u ON u.id = ts.teacherId WHERE ts.studentId = ? ORDER BY u.id DESC',
     [currentUser.id]
   )
 }

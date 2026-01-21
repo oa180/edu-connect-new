@@ -16,12 +16,6 @@ const openapiSpec = {
         bearerFormat: 'JWT'
       }
     },
-    '/chat/users': {
-      get: {
-        tags: ['Chat'], summary: 'List chat users based on role',
-        responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/User' } } } } } }
-      }
-    },
     schemas: {
       User: {
         type: 'object',
@@ -29,6 +23,9 @@ const openapiSpec = {
           id: { type: 'integer' },
           email: { type: 'string' },
           name: { type: 'string', nullable: true },
+          phoneNumber: { type: 'string', nullable: true },
+          grade: { type: 'string', nullable: true },
+          major: { type: 'string', nullable: true },
           role: { type: 'string', enum: ['ADMIN','TEACHER','STUDENT'] },
           createdAt: { type: 'string', format: 'date-time' }
         }
@@ -42,18 +39,34 @@ const openapiSpec = {
         properties: {
           accessToken: { type: 'string' },
           refreshToken: { type: 'string' },
-          user: { type: 'object', properties: { id: { type: 'integer' }, email: { type: 'string' }, name: { type: 'string', nullable: true }, role: { type: 'string', enum: ['ADMIN','TEACHER','STUDENT'] } } }
+          user: { type: 'object', properties: { id: { type: 'integer' }, email: { type: 'string' }, name: { type: 'string', nullable: true }, phoneNumber: { type: 'string', nullable: true }, grade: { type: 'string', nullable: true }, major: { type: 'string', nullable: true }, role: { type: 'string', enum: ['ADMIN','TEACHER','STUDENT'] } } }
         }
       },
       RefreshRequest: { type: 'object', required: ['refreshToken'], properties: { refreshToken: { type: 'string' } } },
       LogoutRequest: { type: 'object', required: ['refreshToken'], properties: { refreshToken: { type: 'string' } } },
       CreateUserRequest: {
         type: 'object', required: ['email','password','role'],
-        properties: { email: { type: 'string', format: 'email' }, password: { type: 'string', minLength: 6 }, role: { type: 'string', enum: ['ADMIN','TEACHER','STUDENT'] }, name: { type: 'string' } }
+        properties: {
+          email: { type: 'string', format: 'email' },
+          password: { type: 'string', minLength: 6 },
+          role: { type: 'string', enum: ['ADMIN','TEACHER','STUDENT'] },
+          name: { type: 'string' },
+          phoneNumber: { type: 'string' },
+          grade: { type: 'string', description: 'Required when role = STUDENT' },
+          major: { type: 'string', description: 'Required when role = TEACHER' }
+        }
       },
       UpdateUserRequest: {
         type: 'object',
-        properties: { email: { type: 'string', format: 'email' }, password: { type: 'string', minLength: 6 }, role: { type: 'string', enum: ['ADMIN','TEACHER','STUDENT'] }, name: { type: 'string' } }
+        properties: {
+          email: { type: 'string', format: 'email' },
+          password: { type: 'string', minLength: 6 },
+          role: { type: 'string', enum: ['ADMIN','TEACHER','STUDENT'] },
+          name: { type: 'string' },
+          phoneNumber: { type: 'string' },
+          grade: { type: 'string', description: 'Required when role = STUDENT' },
+          major: { type: 'string', description: 'Required when role = TEACHER' }
+        }
       },
       AssignStudentRequest: { type: 'object', required: ['teacherId','studentId'], properties: { teacherId: { type: 'integer' }, studentId: { type: 'integer' } } },
       TeacherSelfAssignRequest: { type: 'object', required: ['studentId'], properties: { studentId: { type: 'integer' } } },
@@ -235,6 +248,13 @@ const openapiSpec = {
           { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } }
         ],
         responses: { '200': { description: 'OK', content: { 'application/json': { schema: { $ref: '#/components/schemas/PaginatedMessages' } } } } }
+      }
+    }
+    ,
+    '/chat/users': {
+      get: {
+        tags: ['Chat'], summary: 'List chat users based on role',
+        responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/User' } } } } } }
       }
     }
   }

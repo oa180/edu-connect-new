@@ -70,8 +70,23 @@ const openapiSpec = {
       },
       AssignStudentRequest: { type: 'object', required: ['teacherId','studentId'], properties: { teacherId: { type: 'integer' }, studentId: { type: 'integer' } } },
       TeacherSelfAssignRequest: { type: 'object', required: ['studentId'], properties: { studentId: { type: 'integer' } } },
-      CreateGroupRequest: { type: 'object', required: ['name'], properties: { name: { type: 'string' } } },
-      AddGroupMembersRequest: { type: 'object', required: ['userIds'], properties: { userIds: { type: 'array', items: { type: 'integer' } } } },
+      CreateGroupRequest: {
+        type: 'object', required: ['name'],
+        properties: {
+          name: { type: 'string' },
+          admins_ids: { type: 'array', items: { type: 'integer' }, description: 'User IDs with ADMIN role only' },
+          students_ids: { type: 'array', items: { type: 'integer' }, description: 'User IDs with STUDENT role' },
+          teachers_ids: { type: 'array', items: { type: 'integer' }, description: 'User IDs with TEACHER role' }
+        }
+      },
+      AddGroupMembersRequest: {
+        type: 'object',
+        properties: {
+          admins_ids: { type: 'array', items: { type: 'integer' }, description: 'User IDs with ADMIN role only' },
+          students_ids: { type: 'array', items: { type: 'integer' }, description: 'User IDs with STUDENT role' },
+          teachers_ids: { type: 'array', items: { type: 'integer' }, description: 'User IDs with TEACHER role' }
+        }
+      },
       UpdateGroupSettingsRequest: { type: 'object', required: ['adminOnly'], properties: { adminOnly: { type: 'boolean' } } },
       UpdateMemberPostingRequest: { type: 'object', required: ['canPost'], properties: { canPost: { type: 'boolean' } } },
       PaginatedMessages: {

@@ -3,7 +3,7 @@ const db = require('../../db.js')
 const { signAccessToken, signRefreshToken, verifyRefreshToken } = require('../../utils/token.js')
 
 async function login(email, password) {
-  const users = await db.query('SELECT id, email, password, role FROM `User` WHERE email = ? LIMIT 1', [email])
+  const users = await db.query('SELECT id, email, name, phoneNumber, grade, major, password, role FROM `User` WHERE email = ? LIMIT 1', [email])
   const user = users[0]
   if (!user) throw Object.assign(new Error('Invalid credentials'), { status: 401 })
   const ok = await bcrypt.compare(password, user.password)
@@ -13,7 +13,7 @@ async function login(email, password) {
   const decoded = verifyRefreshToken(refreshToken)
   const expiresAt = new Date(decoded.exp * 1000)
   await db.query('INSERT INTO RefreshToken (userId, token, expiresAt) VALUES (?, ?, ?)', [user.id, refreshToken, expiresAt])
-  return { accessToken, refreshToken, user: { id: user.id, email: user.email, role: user.role } }
+  return { accessToken, refreshToken, user: { id: user.id, email: user.email, name: user.name, phoneNumber: user.phoneNumber, grade: user.grade, major: user.major, role: user.role } }
 }
 
 async function refresh(token) {
@@ -22,7 +22,7 @@ async function refresh(token) {
   const stored = rows[0]
   if (!stored || stored.revoked) throw Object.assign(new Error('Invalid token'), { status: 401 })
   const userId = parseInt(decoded.sub, 10)
-  const users = await db.query('SELECT id, email, role FROM `User` WHERE id = ? LIMIT 1', [userId])
+  const users = await db.query('SELECT id, email, name, phoneNumber, grade, major, role FROM `User` WHERE id = ? LIMIT 1', [userId])
   const user = users[0]
   if (!user) throw Object.assign(new Error('Invalid token'), { status: 401 })
   const accessToken = signAccessToken(user)

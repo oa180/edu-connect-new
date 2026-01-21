@@ -8,8 +8,46 @@ const router = Router()
 router.use(auth, authorize('ADMIN'))
 
 router.get('/users', controller.getAllUsers)
-router.post('/users', [body('email').isEmail(), body('password').isLength({ min: 6 }), body('role').isIn(['ADMIN','TEACHER','STUDENT']), body('name').optional().isString()], controller.createUser)
-router.put('/users/:id', [param('id').isInt(), body('email').optional().isEmail(), body('password').optional().isLength({ min: 6 }), body('role').optional().isIn(['ADMIN','TEACHER','STUDENT']), body('name').optional().isString()], controller.updateUser)
+router.post('/users', [
+  body('email').isEmail(),
+  body('password').isLength({ min: 6 }),
+  body('role').isIn(['ADMIN','TEACHER','STUDENT']),
+  body('name').optional().isString(),
+  body('phoneNumber').optional().isString().isLength({ max: 32 }),
+  body('grade').optional().isString(),
+  body('major').optional().isString(),
+  body('grade').custom((value, { req }) => {
+    if (req.body.role === 'STUDENT' && (!value || String(value).trim() === '')) {
+      throw new Error('grade is required for STUDENT')
+    }
+    return true
+  }),
+  body('major').custom((value, { req }) => {
+    if (req.body.role === 'TEACHER' && (!value || String(value).trim() === '')) {
+      throw new Error('major is required for TEACHER')
+    }
+    return true
+  })
+], controller.createUser)
+router.put('/users/:id', [
+  param('id').isInt(),
+  body('email').optional().isEmail(),
+  body('password').optional().isLength({ min: 6 }),
+  body('role').optional().isIn(['ADMIN','TEACHER','STUDENT']),
+  body('name').optional().isString(),
+  body('phoneNumber').optional().isString().isLength({ max: 32 }),
+  body('grade').optional().isString(),
+  body('major').optional().isString(),
+  body().custom((body) => {
+    if (body.role === 'STUDENT' && (!body.grade || String(body.grade).trim() === '')) {
+      throw new Error('grade is required for STUDENT')
+    }
+    if (body.role === 'TEACHER' && (!body.major || String(body.major).trim() === '')) {
+      throw new Error('major is required for TEACHER')
+    }
+    return true
+  })
+], controller.updateUser)
 router.delete('/users/:id', [param('id').isInt()], controller.deleteUser)
 router.post('/assign-student', [body('teacherId').isInt(), body('studentId').isInt()], controller.assignStudent)
 router.post('/groups', [body('name').isString().isLength({ min: 1 })], controller.createGroup)
