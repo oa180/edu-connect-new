@@ -75,4 +75,24 @@ router.patch('/groups/:id/members/:userId', [param('id').isInt(), param('userId'
 router.post('/groups/:groupId/pin', [param('groupId').isInt(), body('content').isString().isLength({ min: 1 })], controller.createPinnedMessage)
 router.delete('/groups/:groupId/pin', [param('groupId').isInt()], controller.unpinGroup)
 
+// Attendance (Admin)
+router.post('/attendance/sessions', [
+  body('groupId').isInt(),
+  body('date').optional().isString()
+], controller.createAttendanceSession)
+router.get('/attendance/sessions', controller.listAttendanceSessions)
+router.get('/attendance/sessions/:sessionId', [param('sessionId').isInt()], controller.getAttendanceSession)
+router.post('/attendance/sessions/:sessionId/records', [
+  param('sessionId').isInt(),
+  body('records').isArray({ min: 1 }),
+  body('records.*.studentId').isInt(),
+  body('records.*.status').isIn(['PRESENT','ABSENT','LATE','EXCUSED']),
+  body('records.*.note').optional().isString()
+], controller.upsertAttendanceRecords)
+router.patch('/attendance/records/:id', [
+  param('id').isInt(),
+  body('status').optional().isIn(['PRESENT','ABSENT','LATE','EXCUSED']),
+  body('note').optional().isString()
+], controller.updateAttendanceRecord)
+
 module.exports = router
