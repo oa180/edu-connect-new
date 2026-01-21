@@ -174,23 +174,17 @@ async function updateMemberPosting(groupId, userId, { canPost }) {
   return rows[0]
 }
 
-async function pinMessage(groupId, messageId, pinnedById) {
-  // Validate message belongs to group
-  const rows = await db.query('SELECT id, groupId FROM GroupMessage WHERE id = ? LIMIT 1', [messageId])
-  const msg = rows[0]
-  if (!msg || msg.groupId !== groupId) throw Object.assign(new Error('Not found'), { status: 404 })
-  await db.query('UPDATE GroupMessage SET isPinned = 1, pinnedById = ?, pinnedAt = NOW() WHERE id = ?', [pinnedById, messageId])
-  const out = await db.query('SELECT id, groupId, senderId, content, createdAt, isPinned, pinnedById, pinnedAt FROM GroupMessage WHERE id = ? LIMIT 1', [messageId])
-  return out[0]
+async function createPinnedMessage(groupId, content, adminId) {
+  // Unpin any existing pinned messages for this group (single pin policy)
+  await db.query('UPDATE GroupMessage SET isPinned = 0, pinnedById = NULL, pinnedAt = NULL WHERE groupId = ? AND isPinned = 1', [groupId])
+  // Create a new pinned message authored by the admin
+  await db.query('INSERT INTO GroupMessage (groupId, senderId, content, isPinned, pinnedById, pinnedAt) VALUES (?, ?, ?, 1, ?, NOW())', [groupId, adminId, content, adminId])
+  const rows = await db.query('SELECT id, groupId, senderId, content, createdAt, isPinned, pinnedById, pinnedAt FROM GroupMessage WHERE groupId = ? AND isPinned = 1 ORDER BY pinnedAt DESC LIMIT 1', [groupId])
+  return rows[0]
 }
 
-async function unpinMessage(groupId, messageId) {
-  const rows = await db.query('SELECT id, groupId FROM GroupMessage WHERE id = ? LIMIT 1', [messageId])
-  const msg = rows[0]
-  if (!msg || msg.groupId !== groupId) throw Object.assign(new Error('Not found'), { status: 404 })
-  await db.query('UPDATE GroupMessage SET isPinned = 0, pinnedById = NULL, pinnedAt = NULL WHERE id = ?', [messageId])
-  const out = await db.query('SELECT id, groupId, senderId, content, createdAt, isPinned, pinnedById, pinnedAt FROM GroupMessage WHERE id = ? LIMIT 1', [messageId])
-  return out[0]
+async function unpinGroup(groupId) {
+  await db.query('UPDATE GroupMessage SET isPinned = 0, pinnedById = NULL, pinnedAt = NULL WHERE groupId = ? AND isPinned = 1', [groupId])
 }
 
 module.exports.getAllUsers = getAllUsers
@@ -199,5 +193,5 @@ module.exports.deleteGroup = deleteGroup
 module.exports.removeGroupMember = removeGroupMember
 module.exports.updateGroupSettings = updateGroupSettings
 module.exports.updateMemberPosting = updateMemberPosting
-module.exports.pinMessage = pinMessage
-module.exports.unpinMessage = unpinMessage
+module.exports.createPinnedMessage = createPinnedMessage
+module.exports.unpinGroup = unpinGroup

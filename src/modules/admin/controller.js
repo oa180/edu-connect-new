@@ -73,16 +73,25 @@ async function updateMemberPosting(req, res, next) {
   try { const data = await service.updateMemberPosting(parseInt(req.params.id,10), parseInt(req.params.userId,10), { canPost: !!req.body.canPost }); res.json(data) } catch (e) { next(e) }
 }
 
-async function pinMessage(req, res, next) {
+async function createPinnedMessage(req, res, next) {
   const errors = validationResult(req)
   if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
-  try { const data = await service.pinMessage(parseInt(req.params.groupId,10), parseInt(req.params.messageId,10), req.user.id); res.json(data) } catch (e) { next(e) }
+  try {
+    const groupId = parseInt(req.params.groupId, 10)
+    const { content } = req.body
+    const data = await service.createPinnedMessage(groupId, content, req.user.id)
+    res.status(201).json(data)
+  } catch (e) { next(e) }
 }
 
-async function unpinMessage(req, res, next) {
+async function unpinGroup(req, res, next) {
   const errors = validationResult(req)
   if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
-  try { const data = await service.unpinMessage(parseInt(req.params.groupId,10), parseInt(req.params.messageId,10)); res.json(data) } catch (e) { next(e) }
+  try {
+    const groupId = parseInt(req.params.groupId, 10)
+    await service.unpinGroup(groupId)
+    res.status(204).end()
+  } catch (e) { next(e) }
 }
 
-module.exports = { createUser, updateUser, deleteUser, createGroup, addGroupMembers, getAllUsers, getAllGroups, deleteGroup, removeGroupMember, updateGroupSettings, updateMemberPosting, pinMessage, unpinMessage }
+module.exports = { createUser, updateUser, deleteUser, createGroup, addGroupMembers, getAllUsers, getAllGroups, deleteGroup, removeGroupMember, updateGroupSettings, updateMemberPosting, createPinnedMessage, unpinGroup }

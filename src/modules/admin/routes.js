@@ -72,7 +72,7 @@ router.post('/groups/:id/members', [
 router.delete('/groups/:id/members/:userId', [param('id').isInt(), param('userId').isInt()], controller.removeGroupMember)
 router.patch('/groups/:id/settings', [param('id').isInt(), body('adminOnly').isBoolean()], controller.updateGroupSettings)
 router.patch('/groups/:id/members/:userId', [param('id').isInt(), param('userId').isInt(), body('canPost').isBoolean()], controller.updateMemberPosting)
-router.post('/groups/:groupId/messages/:messageId/pin', [param('groupId').isInt(), param('messageId').isInt()], controller.pinMessage)
-router.delete('/groups/:groupId/messages/:messageId/pin', [param('groupId').isInt(), param('messageId').isInt()], controller.unpinMessage)
+router.post('/groups/:groupId/pin', [param('groupId').isInt(), body('content').isString().isLength({ min: 1 })], controller.createPinnedMessage)
+router.delete('/groups/:groupId/pin', [param('groupId').isInt()], controller.unpinGroup)
 
 module.exports = router

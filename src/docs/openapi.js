@@ -144,13 +144,6 @@ const openapiSpec = {
         responses: { '204': { description: 'Deleted' } }
       }
     },
-    '/admin/assign-student': {
-      post: {
-        tags: ['Admin'], summary: 'Assign student to teacher',
-        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/AssignStudentRequest' } } } },
-        responses: { '200': { description: 'Assigned' } }
-      }
-    },
     '/admin/groups': {
       post: {
         tags: ['Admin'], summary: 'Create group',
@@ -206,22 +199,21 @@ const openapiSpec = {
         responses: { '200': { description: 'OK' } }
       }
     },
-    '/admin/groups/{groupId}/messages/{messageId}/pin': {
+    '/admin/groups/{groupId}/pin': {
       post: {
-        tags: ['Admin'], summary: 'Pin message',
+        tags: ['Admin'], summary: 'Create a pinned message for the group',
         parameters: [
-          { name: 'groupId', in: 'path', required: true, schema: { type: 'integer' } },
-          { name: 'messageId', in: 'path', required: true, schema: { type: 'integer' } }
+          { name: 'groupId', in: 'path', required: true, schema: { type: 'integer' } }
         ],
-        responses: { '200': { description: 'OK' } }
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['content'], properties: { content: { type: 'string' } } } } } },
+        responses: { '201': { description: 'Created' } }
       },
       delete: {
-        tags: ['Admin'], summary: 'Unpin message',
+        tags: ['Admin'], summary: 'Unpin current group message',
         parameters: [
-          { name: 'groupId', in: 'path', required: true, schema: { type: 'integer' } },
-          { name: 'messageId', in: 'path', required: true, schema: { type: 'integer' } }
+          { name: 'groupId', in: 'path', required: true, schema: { type: 'integer' } }
         ],
-        responses: { '200': { description: 'OK' } }
+        responses: { '204': { description: 'Unpinned' } }
       }
     },
     '/teacher/students': {
