@@ -147,7 +147,7 @@ module.exports = { createUser, updateUser, deleteUser, assignStudent, createGrou
 
 // New admin features
 async function getAllUsers() {
-  return db.query('SELECT id, email, name, phoneNumber, password, grade, major, role, createdAt FROM `User` ORDER BY id DESC')
+  return db.query('SELECT id, email, name, phoneNumber, grade, major, role, createdAt FROM `User` ORDER BY id DESC')
 }
 
 async function getAllGroups() {
@@ -195,3 +195,94 @@ module.exports.updateGroupSettings = updateGroupSettings
 module.exports.updateMemberPosting = updateMemberPosting
 module.exports.createPinnedMessage = createPinnedMessage
 module.exports.unpinGroup = unpinGroup
+
+// Attendance (Admin)
+async function createAttendanceSession(adminId, { groupId, date }) {
+  // normalize date to YYYY-MM-DD
+  const sessionDate = date ? String(date).slice(0, 10) : null
+  // ensure group exists
+  const g = await db.query('SELECT id FROM ChatGroup WHERE id = ? LIMIT 1', [groupId])
+  if (!g[0]) throw Object.assign(new Error('Group not found'), { status: 404 })
+  // enforce one session per group per day (return existing if present)
+  const existing = await db.query('SELECT id, groupId, date, createdById, createdAt FROM AttendanceSession WHERE groupId = ? AND date = ? LIMIT 1', [groupId, sessionDate || new Date().toISOString().slice(0,10)])
+  if (existing[0]) return existing[0]
+  await db.query('INSERT INTO AttendanceSession (groupId, date, createdById) VALUES (?, ?, ?)', [groupId, sessionDate || new Date().toISOString().slice(0,10), adminId])
+  const rows = await db.query('SELECT id, groupId, date, createdById, createdAt FROM AttendanceSession WHERE groupId = ? AND date = ? ORDER BY id DESC LIMIT 1', [groupId, sessionDate || new Date().toISOString().slice(0,10)])
+  return rows[0]
+}
+
+async function upsertAttendanceRecords(sessionId, records = [], takenById) {
+  if (!Array.isArray(records) || records.length === 0) return { sessionId, updated: 0 }
+  // find session and group
+  const s = await db.query('SELECT id, groupId FROM AttendanceSession WHERE id = ? LIMIT 1', [sessionId])
+  const session = s[0]
+  if (!session) throw Object.assign(new Error('Session not found'), { status: 404 })
+  // validate students: must be members of the group and STUDENT role
+  const studentIds = [...new Set(records.map(r => parseInt(r.studentId, 10)).filter(v => Number.isInteger(v)))]
+  if (studentIds.length === 0) return { sessionId, updated: 0 }
+  const placeholders = studentIds.map(() => '?').join(',')
+  const users = await db.query(`SELECT u.id, u.role FROM \`User\` u WHERE u.id IN (${placeholders})`, studentIds)
+  const roleMap = new Map(users.map(u => [u.id, u.role]))
+  const members = await db.query(`SELECT userId FROM ChatGroupMember WHERE groupId = ? AND userId IN (${placeholders})`, [session.groupId, ...studentIds])
+  const memberSet = new Set(members.map(m => m.userId))
+  const invalid = []
+  studentIds.forEach(id => {
+    const role = roleMap.get(id)
+    if (!role || role !== 'STUDENT' || !memberSet.has(id)) invalid.push(id)
+  })
+  if (invalid.length) {
+    const err = Object.assign(new Error('Some studentIds are invalid or not members of the group'), { status: 400 })
+    err.details = { invalid }
+    throw err
+  }
+  // upsert
+  let count = 0
+  for (const rec of records) {
+    const status = String(rec.status || '').toUpperCase()
+    const note = typeof rec.note === 'undefined' ? null : rec.note
+    await db.query(
+      'INSERT INTO AttendanceRecord (sessionId, studentId, status, note, takenById) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status), note = VALUES(note), takenById = VALUES(takenById), takenAt = NOW()',
+      [sessionId, rec.studentId, status, note, takenById]
+    )
+    count += 1
+  }
+  return { sessionId, updated: count }
+}
+
+async function updateAttendanceRecordAdmin(recordId, { status, note }) {
+  const rows = await db.query('SELECT id FROM AttendanceRecord WHERE id = ? LIMIT 1', [recordId])
+  if (!rows[0]) throw Object.assign(new Error('Record not found'), { status: 404 })
+  const fields = []
+  const params = []
+  if (typeof status !== 'undefined') { fields.push('status = ?'); params.push(String(status).toUpperCase()) }
+  if (typeof note !== 'undefined') { fields.push('note = ?'); params.push(note) }
+  if (!fields.length) return rows[0]
+  params.push(recordId)
+  await db.query(`UPDATE AttendanceRecord SET ${fields.join(', ')} WHERE id = ?`, params)
+  const r = await db.query('SELECT id, sessionId, studentId, status, note, takenAt, takenById FROM AttendanceRecord WHERE id = ? LIMIT 1', [recordId])
+  return r[0]
+}
+
+async function listAttendanceSessionsAdmin({ groupId, dateFrom, dateTo }) {
+  const clauses = []
+  const params = []
+  if (groupId) { clauses.push('groupId = ?'); params.push(groupId) }
+  if (dateFrom) { clauses.push('date >= ?'); params.push(dateFrom) }
+  if (dateTo) { clauses.push('date <= ?'); params.push(dateTo) }
+  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : ''
+  return db.query(`SELECT id, groupId, date, createdById, createdAt FROM AttendanceSession ${where} ORDER BY date DESC, id DESC`, params)
+}
+
+async function getAttendanceSessionAdmin(sessionId) {
+  const s = await db.query('SELECT id, groupId, date, createdById, createdAt FROM AttendanceSession WHERE id = ? LIMIT 1', [sessionId])
+  const session = s[0]
+  if (!session) throw Object.assign(new Error('Session not found'), { status: 404 })
+  const records = await db.query('SELECT id, sessionId, studentId, status, note, takenAt, takenById FROM AttendanceRecord WHERE sessionId = ? ORDER BY id ASC', [sessionId])
+  return { ...session, records }
+}
+
+module.exports.createAttendanceSession = createAttendanceSession
+module.exports.upsertAttendanceRecords = upsertAttendanceRecords
+module.exports.updateAttendanceRecordAdmin = updateAttendanceRecordAdmin
+module.exports.listAttendanceSessionsAdmin = listAttendanceSessionsAdmin
+module.exports.getAttendanceSessionAdmin = getAttendanceSessionAdmin

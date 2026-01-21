@@ -49,15 +49,30 @@ router.put('/users/:id', [
   })
 ], controller.updateUser)
 router.delete('/users/:id', [param('id').isInt()], controller.deleteUser)
-router.post('/assign-student', [body('teacherId').isInt(), body('studentId').isInt()], controller.assignStudent)
-router.post('/groups', [body('name').isString().isLength({ min: 1 })], controller.createGroup)
+router.post('/groups', [
+  body('name').isString().isLength({ min: 1 }),
+  body('admins_ids').optional().isArray(),
+  body('admins_ids.*').optional().isInt(),
+  body('students_ids').optional().isArray(),
+  body('students_ids.*').optional().isInt(),
+  body('teachers_ids').optional().isArray(),
+  body('teachers_ids.*').optional().isInt()
+], controller.createGroup)
 router.get('/groups', controller.getAllGroups)
 router.delete('/groups/:id', [param('id').isInt()], controller.deleteGroup)
-router.post('/groups/:id/members', [param('id').isInt(), body('userIds').isArray({ min: 1 })], controller.addGroupMembers)
+router.post('/groups/:id/members', [
+  param('id').isInt(),
+  body('admins_ids').optional().isArray(),
+  body('admins_ids.*').optional().isInt(),
+  body('students_ids').optional().isArray(),
+  body('students_ids.*').optional().isInt(),
+  body('teachers_ids').optional().isArray(),
+  body('teachers_ids.*').optional().isInt()
+], controller.addGroupMembers)
 router.delete('/groups/:id/members/:userId', [param('id').isInt(), param('userId').isInt()], controller.removeGroupMember)
 router.patch('/groups/:id/settings', [param('id').isInt(), body('adminOnly').isBoolean()], controller.updateGroupSettings)
 router.patch('/groups/:id/members/:userId', [param('id').isInt(), param('userId').isInt(), body('canPost').isBoolean()], controller.updateMemberPosting)
-router.post('/groups/:groupId/messages/:messageId/pin', [param('groupId').isInt(), param('messageId').isInt()], controller.pinMessage)
-router.delete('/groups/:groupId/messages/:messageId/pin', [param('groupId').isInt(), param('messageId').isInt()], controller.unpinMessage)
+router.post('/groups/:groupId/pin', [param('groupId').isInt(), body('content').isString().isLength({ min: 1 })], controller.createPinnedMessage)
+router.delete('/groups/:groupId/pin', [param('groupId').isInt()], controller.unpinGroup)
 
 module.exports = router

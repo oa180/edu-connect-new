@@ -89,6 +89,51 @@ const openapiSpec = {
       },
       UpdateGroupSettingsRequest: { type: 'object', required: ['adminOnly'], properties: { adminOnly: { type: 'boolean' } } },
       UpdateMemberPostingRequest: { type: 'object', required: ['canPost'], properties: { canPost: { type: 'boolean' } } },
+      AttendanceSession: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer' },
+          groupId: { type: 'integer' },
+          date: { type: 'string', format: 'date' },
+          createdById: { type: 'integer' },
+          createdAt: { type: 'string', format: 'date-time' }
+        }
+      },
+      AttendanceRecord: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer' },
+          sessionId: { type: 'integer' },
+          studentId: { type: 'integer' },
+          status: { type: 'string', enum: ['PRESENT','ABSENT','LATE','EXCUSED'] },
+          note: { type: 'string', nullable: true },
+          takenAt: { type: 'string', format: 'date-time' },
+          takenById: { type: 'integer' }
+        }
+      },
+      CreateAttendanceSessionRequest: {
+        type: 'object', required: ['groupId'],
+        properties: { groupId: { type: 'integer' }, date: { type: 'string', format: 'date' } }
+      },
+      UpsertAttendanceRecordsRequest: {
+        type: 'object', required: ['records'],
+        properties: {
+          records: {
+            type: 'array', items: {
+              type: 'object', required: ['studentId','status'],
+              properties: {
+                studentId: { type: 'integer' },
+                status: { type: 'string', enum: ['PRESENT','ABSENT','LATE','EXCUSED'] },
+                note: { type: 'string' }
+              }
+            }
+          }
+        }
+      },
+      UpdateAttendanceRecordRequest: {
+        type: 'object',
+        properties: { status: { type: 'string', enum: ['PRESENT','ABSENT','LATE','EXCUSED'] }, note: { type: 'string' } }
+      },
       PaginatedMessages: {
         type: 'object', properties: {
           items: { type: 'array', items: { type: 'object', properties: { id: { type: 'integer' }, senderId: { type: 'integer' }, receiverId: { type: 'integer' }, content: { type: 'string' }, createdAt: { type: 'string', format: 'date-time' }, isRead: { type: 'boolean' } } } },
