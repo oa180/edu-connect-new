@@ -1,4 +1,4 @@
-const bcrypt = require('bcryptjs')
+// const bcrypt = require('bcryptjs')
 const db = require('../../db.js')
 const { signAccessToken, signRefreshToken, verifyRefreshToken } = require('../../utils/token.js')
 
@@ -6,7 +6,8 @@ async function login(email, password) {
   const users = await db.query('SELECT id, email, name, phoneNumber, grade, major, password, role FROM `User` WHERE email = ? LIMIT 1', [email])
   const user = users[0]
   if (!user) throw Object.assign(new Error('Invalid credentials'), { status: 401 })
-  const ok = await bcrypt.compare(password, user.password)
+  // const ok = await bcrypt.compare(password, user.password)
+  const ok = String(password) === String(user.password)
   if (!ok) throw Object.assign(new Error('Invalid credentials'), { status: 401 })
   const accessToken = signAccessToken(user)
   const refreshToken = signRefreshToken(user)

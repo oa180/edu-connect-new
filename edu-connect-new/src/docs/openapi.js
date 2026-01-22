@@ -261,6 +261,45 @@ const openapiSpec = {
         responses: { '204': { description: 'Unpinned' } }
       }
     },
+    '/admin/attendance/sessions': {
+      post: {
+        tags: ['Admin'], summary: 'Create attendance session (one per group/day)',
+        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/CreateAttendanceSessionRequest' } } } },
+        responses: { '201': { description: 'Created', content: { 'application/json': { schema: { $ref: '#/components/schemas/AttendanceSession' } } } } }
+      },
+      get: {
+        tags: ['Admin'], summary: 'List attendance sessions',
+        parameters: [
+          { name: 'groupId', in: 'query', schema: { type: 'integer' } },
+          { name: 'dateFrom', in: 'query', schema: { type: 'string', format: 'date' } },
+          { name: 'dateTo', in: 'query', schema: { type: 'string', format: 'date' } }
+        ],
+        responses: { '200': { description: 'OK' } }
+      }
+    },
+    '/admin/attendance/sessions/{sessionId}': {
+      get: {
+        tags: ['Admin'], summary: 'Get session with records',
+        parameters: [ { name: 'sessionId', in: 'path', required: true, schema: { type: 'integer' } } ],
+        responses: { '200': { description: 'OK' } }
+      }
+    },
+    '/admin/attendance/sessions/{sessionId}/records': {
+      post: {
+        tags: ['Admin'], summary: 'Upsert attendance records',
+        parameters: [ { name: 'sessionId', in: 'path', required: true, schema: { type: 'integer' } } ],
+        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/UpsertAttendanceRecordsRequest' } } } },
+        responses: { '200': { description: 'OK' } }
+      }
+    },
+    '/admin/attendance/records/{id}': {
+      patch: {
+        tags: ['Admin'], summary: 'Update a record',
+        parameters: [ { name: 'id', in: 'path', required: true, schema: { type: 'integer' } } ],
+        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/UpdateAttendanceRecordRequest' } } } },
+        responses: { '200': { description: 'OK' } }
+      }
+    },
     '/teacher/students': {
       get: {
         tags: ['Teacher'], summary: 'List my students',
@@ -274,9 +313,59 @@ const openapiSpec = {
         responses: { '201': { description: 'Assigned' } }
       }
     },
+    '/teacher/attendance/sessions': {
+      post: {
+        tags: ['Teacher'], summary: 'Create attendance session',
+        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/CreateAttendanceSessionRequest' } } } },
+        responses: { '201': { description: 'Created' } }
+      },
+      get: {
+        tags: ['Teacher'], summary: 'List my group sessions',
+        parameters: [
+          { name: 'groupId', in: 'query', schema: { type: 'integer' } },
+          { name: 'dateFrom', in: 'query', schema: { type: 'string', format: 'date' } },
+          { name: 'dateTo', in: 'query', schema: { type: 'string', format: 'date' } }
+        ],
+        responses: { '200': { description: 'OK' } }
+      }
+    },
+    '/teacher/attendance/sessions/{sessionId}': {
+      get: {
+        tags: ['Teacher'], summary: 'Get session with records (my groups only)',
+        parameters: [ { name: 'sessionId', in: 'path', required: true, schema: { type: 'integer' } } ],
+        responses: { '200': { description: 'OK' } }
+      }
+    },
+    '/teacher/attendance/sessions/{sessionId}/records': {
+      post: {
+        tags: ['Teacher'], summary: 'Upsert attendance records',
+        parameters: [ { name: 'sessionId', in: 'path', required: true, schema: { type: 'integer' } } ],
+        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/UpsertAttendanceRecordsRequest' } } } },
+        responses: { '200': { description: 'OK' } }
+      }
+    },
+    '/teacher/attendance/records/{id}': {
+      patch: {
+        tags: ['Teacher'], summary: 'Update a record in my groups',
+        parameters: [ { name: 'id', in: 'path', required: true, schema: { type: 'integer' } } ],
+        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/UpdateAttendanceRecordRequest' } } } },
+        responses: { '200': { description: 'OK' } }
+      }
+    },
     '/student/teachers': {
       get: {
         tags: ['Student'], summary: 'List my teachers',
+        responses: { '200': { description: 'OK' } }
+      }
+    },
+    '/student/attendance': {
+      get: {
+        tags: ['Student'], summary: 'List my attendance',
+        parameters: [
+          { name: 'groupId', in: 'query', schema: { type: 'integer' } },
+          { name: 'dateFrom', in: 'query', schema: { type: 'string', format: 'date' } },
+          { name: 'dateTo', in: 'query', schema: { type: 'string', format: 'date' } }
+        ],
         responses: { '200': { description: 'OK' } }
       }
     },
