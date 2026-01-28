@@ -22,21 +22,31 @@ app.use(morgan('combined'))
 app.use('/api', routes)
 
 app.set('trust proxy', true);
+
 if (process.env.SWAGGER_ENABLED !== 'false') {
   const options = {
     swaggerOptions: {
-      url: '/api/docs.json', // Use a relative path
+      url: '/api/docs.json',
     },
-    // This part is the magic fix for the red errors in your screenshot
     customCss: '.swagger-ui .topbar { display: none }',
+    // 👇 THIS IS THE FIX
+    customSiteTitle: 'API Docs',
   };
 
-  // Serve the UI
-  app.use('/api/docs', swaggerUi.serve);
-  
-  // Link the setup
-  app.get('/api/docs', swaggerUi.setup(null, options));
+  app.use(
+    '/api/docs',
+    swaggerUi.serve,
+    swaggerUi.setup(null, {
+      ...options,
+      // 👇 force correct asset paths
+      swaggerOptions: {
+        ...options.swaggerOptions,
+        basePath: '/api/docs',
+      },
+    })
+  );
 }
+
 app.use(errorHandler)
 
 module.exports = app
