@@ -24,4 +24,4 @@ jobs:
             npm install
             # Optional: Build step if using TypeScript/React
             # npm run build 
-            pm2 restart all || pm2 start server.js --name "edu-connect-new"
+            pm2 restart all || pm2 start src/server.js --name "edu-connect-new"
