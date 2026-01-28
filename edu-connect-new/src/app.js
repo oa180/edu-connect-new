@@ -25,9 +25,10 @@ if (process.env.SWAGGER_ENABLED !== 'false') {
   // Use a relative path that works with the browser URL
   app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(null, { 
     swaggerOptions: {
-      url: '/api/docs.json' 
-    }
-  }));
+        url: '/api/docs.json',
+    },
+    explorer: true // Adds a search bar and helps with internal routing
+}));
 
   app.get('/api/docs.json', (req, res) => {
     // This will now correctly show https://yourdomain.com/api or http://76.13.102.118/api
