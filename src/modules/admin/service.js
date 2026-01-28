@@ -62,7 +62,7 @@ async function createGroup(adminId, name, { admins_ids = [], students_ids = [], 
     const placeholders = uniqueAdmins.map(() => '?').join(',')
     const rows = await db.query(`SELECT id, role FROM \`User\` WHERE id IN (${placeholders})`, uniqueAdmins)
     const roleMap = new Map(rows.map(r => [r.id, r.role]))
-    uniqueAdmins.forEach(id => { const r = roleMap.get(id); if (!r || r !== 'ADMIN') invalid.admins_invalid.push(id) })
+    uniqueAdmins.forEach(id => { const r = roleMap.get(id); if (!r || !['ADMIN','SUPER_ADMIN','MANAGER'].includes(r)) invalid.admins_invalid.push(id) })
   }
   if (uniqueStudents.length) {
     const placeholders = uniqueStudents.map(() => '?').join(',')
@@ -113,7 +113,7 @@ async function addGroupMembers(groupId, { admins_ids = [], students_ids = [], te
     const placeholders = uniqueAdmins.map(() => '?').join(',')
     const rows = await db.query(`SELECT id, role FROM \`User\` WHERE id IN (${placeholders})`, uniqueAdmins)
     const roleMap = new Map(rows.map(r => [r.id, r.role]))
-    uniqueAdmins.forEach(id => { const r = roleMap.get(id); if (!r || r !== 'ADMIN') invalid.admins_invalid.push(id) })
+    uniqueAdmins.forEach(id => { const r = roleMap.get(id); if (!r || !['ADMIN','SUPER_ADMIN','MANAGER'].includes(r)) invalid.admins_invalid.push(id) })
   }
   if (uniqueStudents.length) {
     const placeholders = uniqueStudents.map(() => '?').join(',')
@@ -170,7 +170,7 @@ async function getAllGroups() {
     const entry = byGroup.get(row.groupId)
     if (!entry) continue
     const user = { id: row.userId, email: row.email, name: row.name, phoneNumber: row.phoneNumber, grade: row.grade, major: row.major, role: row.role }
-    if (row.role === 'ADMIN') entry.admins.push(user)
+    if (['ADMIN','SUPER_ADMIN','MANAGER'].includes(row.role)) entry.admins.push(user)
     else if (row.role === 'TEACHER') entry.teachers.push(user)
     else if (row.role === 'STUDENT') entry.students.push(user)
   }
@@ -194,7 +194,7 @@ async function getGroupById(groupId) {
   const students = []
   for (const u of members) {
     const user = { id: u.userId, email: u.email, name: u.name, phoneNumber: u.phoneNumber, grade: u.grade, major: u.major, role: u.role }
-    if (u.role === 'ADMIN') admins.push(user)
+    if (['ADMIN','SUPER_ADMIN','MANAGER'].includes(u.role)) admins.push(user)
     else if (u.role === 'TEACHER') teachers.push(user)
     else if (u.role === 'STUDENT') students.push(user)
   }
@@ -215,7 +215,7 @@ async function updateGroup(groupId, { name, admins_ids = [], students_ids = [], 
     const placeholders = uniqueAdmins.map(() => '?').join(',')
     const rows = await db.query(`SELECT id, role FROM \`User\` WHERE id IN (${placeholders})`, uniqueAdmins)
     const roleMap = new Map(rows.map(r => [r.id, r.role]))
-    uniqueAdmins.forEach(id => { const r = roleMap.get(id); if (!r || r !== 'ADMIN') invalid.admins_invalid.push(id) })
+    uniqueAdmins.forEach(id => { const r = roleMap.get(id); if (!r || !['ADMIN','SUPER_ADMIN','MANAGER'].includes(r)) invalid.admins_invalid.push(id) })
   }
   if (uniqueStudents.length) {
     const placeholders = uniqueStudents.map(() => '?').join(',')

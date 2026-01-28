@@ -22,6 +22,7 @@ const openapiSpec = {
         properties: {
           id: { type: 'integer' },
           email: { type: 'string' },
+          password: { type: 'string' },
           name: { type: 'string', nullable: true },
           phoneNumber: { type: 'string', nullable: true },
           grade: { type: 'string', nullable: true },
@@ -77,6 +78,15 @@ const openapiSpec = {
           admins_ids: { type: 'array', items: { type: 'integer' }, description: 'User IDs with ADMIN role only' },
           students_ids: { type: 'array', items: { type: 'integer' }, description: 'User IDs with STUDENT role' },
           teachers_ids: { type: 'array', items: { type: 'integer' }, description: 'User IDs with TEACHER role' }
+        }
+      },
+      UpdateGroupRequest: {
+        type: 'object', required: ['name'],
+        properties: {
+          name: { type: 'string' },
+          admins_ids: { type: 'array', items: { type: 'integer' } },
+          students_ids: { type: 'array', items: { type: 'integer' } },
+          teachers_ids: { type: 'array', items: { type: 'integer' } }
         }
       },
       AddGroupMembersRequest: {
@@ -177,6 +187,11 @@ const openapiSpec = {
       }
     },
     '/admin/users/{id}': {
+      get: {
+        tags: ['Admin'], summary: 'Get user by id',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { '200': { description: 'OK', content: { 'application/json': { schema: { $ref: '#/components/schemas/User' } } } }, '404': { description: 'Not found' } }
+      },
       put: {
         tags: ['Admin'], summary: 'Update user',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
@@ -196,11 +211,22 @@ const openapiSpec = {
         responses: { '201': { description: 'Created' } }
       },
       get: {
-        tags: ['Admin'], summary: 'List groups',
+        tags: ['Admin'], summary: 'List groups with members grouped by role',
         responses: { '200': { description: 'OK' } }
       }
     },
     '/admin/groups/{id}': {
+      get: {
+        tags: ['Admin'], summary: 'Get group by id with members grouped by role',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { '200': { description: 'OK' }, '404': { description: 'Not found' } }
+      },
+      put: {
+        tags: ['Admin'], summary: 'Update group name and members (sync members with provided arrays)',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/UpdateGroupRequest' } } } },
+        responses: { '200': { description: 'OK' } }
+      },
       delete: {
         tags: ['Admin'], summary: 'Delete group',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],

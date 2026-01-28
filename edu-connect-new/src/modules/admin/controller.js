@@ -45,14 +45,41 @@ async function getAllUsers(req, res, next) {
   try { const data = await service.getAllUsers(); res.json(data) } catch (e) { next(e) }
 }
 
+async function getUserById(req, res, next) {
+  try {
+    const user = await service.getUserById(parseInt(req.params.id, 10))
+    if (!user) return res.status(404).json({ message: 'Not found' })
+    res.json(user)
+  } catch (e) { next(e) }
+}
+
 async function getAllGroups(req, res, next) {
   try { const data = await service.getAllGroups(); res.json(data) } catch (e) { next(e) }
+}
+
+async function getGroupById(req, res, next) {
+  try {
+    const data = await service.getGroupById(parseInt(req.params.id, 10))
+    if (!data) return res.status(404).json({ message: 'Not found' })
+    res.json(data)
+  } catch (e) { next(e) }
 }
 
 async function deleteGroup(req, res, next) {
   const errors = validationResult(req)
   if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
   try { await service.deleteGroup(parseInt(req.params.id,10)); res.status(204).end() } catch (e) { next(e) }
+}
+
+async function updateGroup(req, res, next) {
+  const errors = validationResult(req)
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
+  try {
+    const groupId = parseInt(req.params.id, 10)
+    const { name, admins_ids = [], students_ids = [], teachers_ids = [] } = req.body
+    const data = await service.updateGroup(groupId, { name, admins_ids, students_ids, teachers_ids })
+    res.json(data)
+  } catch (e) { next(e) }
 }
 
 async function removeGroupMember(req, res, next) {
@@ -140,4 +167,4 @@ async function getAttendanceSession(req, res, next) {
   } catch (e) { next(e) }
 }
 
-module.exports = { createUser, updateUser, deleteUser, createGroup, addGroupMembers, getAllUsers, getAllGroups, deleteGroup, removeGroupMember, updateGroupSettings, updateMemberPosting, createPinnedMessage, unpinGroup, createAttendanceSession, upsertAttendanceRecords, updateAttendanceRecord, listAttendanceSessions, getAttendanceSession }
+module.exports = { createUser, updateUser, deleteUser, createGroup, addGroupMembers, getAllUsers, getUserById, getAllGroups, getGroupById, updateGroup, deleteGroup, removeGroupMember, updateGroupSettings, updateMemberPosting, createPinnedMessage, unpinGroup, createAttendanceSession, upsertAttendanceRecords, updateAttendanceRecord, listAttendanceSessions, getAttendanceSession }

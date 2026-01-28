@@ -12,7 +12,7 @@ router.get('/users/:id', [param('id').isInt()], controller.getUserById)
 router.post('/users', [
   body('email').isEmail(),
   body('password').isLength({ min: 6 }),
-  body('role').isIn(['ADMIN','TEACHER','STUDENT']),
+  body('role').isIn(['ADMIN','TEACHER','STUDENT','SUPER_ADMIN','MANAGER']),
   body('name').optional().isString(),
   body('phoneNumber').optional().isString().isLength({ max: 32 }),
   body('grade').optional().isString(),
@@ -34,7 +34,7 @@ router.put('/users/:id', [
   param('id').isInt(),
   body('email').optional().isEmail(),
   body('password').optional().isLength({ min: 6 }),
-  body('role').optional().isIn(['ADMIN','TEACHER','STUDENT']),
+  body('role').optional().isIn(['ADMIN','TEACHER','STUDENT','SUPER_ADMIN','MANAGER']),
   body('name').optional().isString(),
   body('phoneNumber').optional().isString().isLength({ max: 32 }),
   body('grade').optional().isString(),

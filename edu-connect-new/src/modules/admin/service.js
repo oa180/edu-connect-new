@@ -1,11 +1,11 @@
-const bcrypt = require('bcryptjs')
+// const bcrypt = require('bcryptjs')
 const db = require('../../db.js')
 
 async function createUser({ email, password, role, name, phoneNumber, grade, major }) {
-  const hash = await bcrypt.hash(password, 10)
+  // const hash = await bcrypt.hash(password, 10)
   await db.query(
     'INSERT INTO `User` (email, password, role, name, phoneNumber, grade, major, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
-    [email, hash, role, name || null, phoneNumber || null, grade || null, major || null]
+    [email, /*hash*/ password, role, name || null, phoneNumber || null, grade || null, major || null]
   )
   const rows = await db.query('SELECT id, email, name, phoneNumber, grade, major, role, createdAt, updatedAt FROM `User` WHERE email = ? LIMIT 1', [email])
   return rows[0]
@@ -15,7 +15,8 @@ async function updateUser(id, { email, password, role, name, phoneNumber, grade,
   const fields = []
   const params = []
   if (email) { fields.push('email = ?'); params.push(email) }
-  if (password) { fields.push('password = ?'); params.push(await bcrypt.hash(password, 10)) }
+  // if (password) { fields.push('password = ?'); params.push(await bcrypt.hash(password, 10)) }
+  if (password) { fields.push('password = ?'); params.push(password) }
   if (role) { fields.push('role = ?'); params.push(role) }
   if (typeof name !== 'undefined') { fields.push('name = ?'); params.push(name) }
   if (typeof phoneNumber !== 'undefined') { fields.push('phoneNumber = ?'); params.push(phoneNumber) }
@@ -61,7 +62,7 @@ async function createGroup(adminId, name, { admins_ids = [], students_ids = [], 
     const placeholders = uniqueAdmins.map(() => '?').join(',')
     const rows = await db.query(`SELECT id, role FROM \`User\` WHERE id IN (${placeholders})`, uniqueAdmins)
     const roleMap = new Map(rows.map(r => [r.id, r.role]))
-    uniqueAdmins.forEach(id => { const r = roleMap.get(id); if (!r || r !== 'ADMIN') invalid.admins_invalid.push(id) })
+    uniqueAdmins.forEach(id => { const r = roleMap.get(id); if (!r || !['ADMIN','SUPER_ADMIN','MANAGER'].includes(r)) invalid.admins_invalid.push(id) })
   }
   if (uniqueStudents.length) {
     const placeholders = uniqueStudents.map(() => '?').join(',')
@@ -112,7 +113,7 @@ async function addGroupMembers(groupId, { admins_ids = [], students_ids = [], te
     const placeholders = uniqueAdmins.map(() => '?').join(',')
     const rows = await db.query(`SELECT id, role FROM \`User\` WHERE id IN (${placeholders})`, uniqueAdmins)
     const roleMap = new Map(rows.map(r => [r.id, r.role]))
-    uniqueAdmins.forEach(id => { const r = roleMap.get(id); if (!r || r !== 'ADMIN') invalid.admins_invalid.push(id) })
+    uniqueAdmins.forEach(id => { const r = roleMap.get(id); if (!r || !['ADMIN','SUPER_ADMIN','MANAGER'].includes(r)) invalid.admins_invalid.push(id) })
   }
   if (uniqueStudents.length) {
     const placeholders = uniqueStudents.map(() => '?').join(',')
@@ -147,15 +148,109 @@ module.exports = { createUser, updateUser, deleteUser, assignStudent, createGrou
 
 // New admin features
 async function getAllUsers() {
-  return db.query('SELECT id, email, name, phoneNumber, grade, major, role, createdAt FROM `User` ORDER BY id DESC')
+  return db.query('SELECT id, email, name, phoneNumber, password, grade, major, role, createdAt FROM `User` ORDER BY id DESC')
+}
+
+async function getUserById(id) {
+  const rows = await db.query('SELECT id, email, name, phoneNumber, password, grade, major, role, createdAt FROM `User` WHERE id = ? LIMIT 1', [id])
+  return rows[0] || null
 }
 
 async function getAllGroups() {
-  return db.query('SELECT g.id, g.name, g.adminOnly, g.createdById, g.createdAt, (SELECT COUNT(*) FROM ChatGroupMember m WHERE m.groupId = g.id) AS memberCount FROM ChatGroup g ORDER BY g.id DESC')
+  const groups = await db.query('SELECT g.id, g.name, g.adminOnly, g.createdById, g.createdAt FROM ChatGroup g ORDER BY g.id DESC')
+  if (groups.length === 0) return []
+  const ids = groups.map(g => g.id)
+  const placeholders = ids.map(() => '?').join(',')
+  const members = await db.query(
+    `SELECT m.groupId, u.id as userId, u.email, u.name, u.phoneNumber, u.grade, u.major, u.role
+     FROM ChatGroupMember m JOIN \`User\` u ON u.id = m.userId
+     WHERE m.groupId IN (${placeholders})`, ids)
+  const byGroup = new Map(groups.map(g => [g.id, { ...g, admins: [], teachers: [], students: [] }]))
+  for (const row of members) {
+    const entry = byGroup.get(row.groupId)
+    if (!entry) continue
+    const user = { id: row.userId, email: row.email, name: row.name, phoneNumber: row.phoneNumber, grade: row.grade, major: row.major, role: row.role }
+    if (['ADMIN','SUPER_ADMIN','MANAGER'].includes(row.role)) entry.admins.push(user)
+    else if (row.role === 'TEACHER') entry.teachers.push(user)
+    else if (row.role === 'STUDENT') entry.students.push(user)
+  }
+  return Array.from(byGroup.values())
 }
 
 async function deleteGroup(groupId) {
   await db.query('DELETE FROM ChatGroup WHERE id = ?', [groupId])
+}
+
+async function getGroupById(groupId) {
+  const rows = await db.query('SELECT id, name, adminOnly, createdById, createdAt FROM ChatGroup WHERE id = ? LIMIT 1', [groupId])
+  const group = rows[0]
+  if (!group) return null
+  const members = await db.query(
+    'SELECT u.id as userId, u.email, u.name, u.phoneNumber, u.grade, u.major, u.role FROM ChatGroupMember m JOIN `User` u ON u.id = m.userId WHERE m.groupId = ?',
+    [groupId]
+  )
+  const admins = []
+  const teachers = []
+  const students = []
+  for (const u of members) {
+    const user = { id: u.userId, email: u.email, name: u.name, phoneNumber: u.phoneNumber, grade: u.grade, major: u.major, role: u.role }
+    if (['ADMIN','SUPER_ADMIN','MANAGER'].includes(u.role)) admins.push(user)
+    else if (u.role === 'TEACHER') teachers.push(user)
+    else if (u.role === 'STUDENT') students.push(user)
+  }
+  return { ...group, admins, teachers, students }
+}
+
+async function updateGroup(groupId, { name, admins_ids = [], students_ids = [], teachers_ids = [] } = {}) {
+  // Update group name
+  await db.query('UPDATE ChatGroup SET name = ? WHERE id = ?', [name, groupId])
+  // Validate roles for provided IDs
+  const uniqueAdmins = Array.from(new Set((admins_ids || []).map(x => parseInt(x, 10)).filter(x => !Number.isNaN(x))))
+  const uniqueStudents = Array.from(new Set((students_ids || []).map(x => parseInt(x, 10)).filter(x => !Number.isNaN(x))))
+  const uniqueTeachers = Array.from(new Set((teachers_ids || []).map(x => parseInt(x, 10)).filter(x => !Number.isNaN(x))))
+
+  const invalid = { admins_invalid: [], students_invalid: [], teachers_invalid: [] }
+
+  if (uniqueAdmins.length) {
+    const placeholders = uniqueAdmins.map(() => '?').join(',')
+    const rows = await db.query(`SELECT id, role FROM \`User\` WHERE id IN (${placeholders})`, uniqueAdmins)
+    const roleMap = new Map(rows.map(r => [r.id, r.role]))
+    uniqueAdmins.forEach(id => { const r = roleMap.get(id); if (!r || !['ADMIN','SUPER_ADMIN','MANAGER'].includes(r)) invalid.admins_invalid.push(id) })
+  }
+  if (uniqueStudents.length) {
+    const placeholders = uniqueStudents.map(() => '?').join(',')
+    const rows = await db.query(`SELECT id, role FROM \`User\` WHERE id IN (${placeholders})`, uniqueStudents)
+    const roleMap = new Map(rows.map(r => [r.id, r.role]))
+    uniqueStudents.forEach(id => { const r = roleMap.get(id); if (!r || r !== 'STUDENT') invalid.students_invalid.push(id) })
+  }
+  if (uniqueTeachers.length) {
+    const placeholders = uniqueTeachers.map(() => '?').join(',')
+    const rows = await db.query(`SELECT id, role FROM \`User\` WHERE id IN (${placeholders})`, uniqueTeachers)
+    const roleMap = new Map(rows.map(r => [r.id, r.role]))
+    uniqueTeachers.forEach(id => { const r = roleMap.get(id); if (!r || r !== 'TEACHER') invalid.teachers_invalid.push(id) })
+  }
+
+  if (invalid.admins_invalid.length || invalid.students_invalid.length || invalid.teachers_invalid.length) {
+    const err = Object.assign(new Error('Invalid member roles for update'), { status: 400 })
+    err.details = invalid
+    throw err
+  }
+
+  const desired = [...new Set([...uniqueAdmins, ...uniqueStudents, ...uniqueTeachers])]
+  // Delete members not in desired set
+  if (desired.length === 0) {
+    await db.query('DELETE FROM ChatGroupMember WHERE groupId = ?', [groupId])
+  } else {
+    const placeholders = desired.map(() => '?').join(',')
+    await db.query(`DELETE FROM ChatGroupMember WHERE groupId = ? AND userId NOT IN (${placeholders})`, [groupId, ...desired])
+  }
+  // Insert missing desired members
+  if (desired.length) {
+    const values = desired.map(() => '(?, ?)').join(',')
+    const params = desired.flatMap(uid => [groupId, uid])
+    await db.query(`INSERT IGNORE INTO ChatGroupMember (groupId, userId) VALUES ${values}`, params)
+  }
+  return getGroupById(groupId)
 }
 
 async function removeGroupMember(groupId, userId) {
@@ -188,8 +283,11 @@ async function unpinGroup(groupId) {
 }
 
 module.exports.getAllUsers = getAllUsers
+module.exports.getUserById = getUserById
 module.exports.getAllGroups = getAllGroups
 module.exports.deleteGroup = deleteGroup
+module.exports.getGroupById = getGroupById
+module.exports.updateGroup = updateGroup
 module.exports.removeGroupMember = removeGroupMember
 module.exports.updateGroupSettings = updateGroupSettings
 module.exports.updateMemberPosting = updateMemberPosting

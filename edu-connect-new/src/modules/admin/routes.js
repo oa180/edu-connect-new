@@ -8,10 +8,11 @@ const router = Router()
 router.use(auth, authorize('ADMIN'))
 
 router.get('/users', controller.getAllUsers)
+router.get('/users/:id', [param('id').isInt()], controller.getUserById)
 router.post('/users', [
   body('email').isEmail(),
   body('password').isLength({ min: 6 }),
-  body('role').isIn(['ADMIN','TEACHER','STUDENT']),
+  body('role').isIn(['ADMIN','TEACHER','STUDENT','SUPER_ADMIN','MANAGER']),
   body('name').optional().isString(),
   body('phoneNumber').optional().isString().isLength({ max: 32 }),
   body('grade').optional().isString(),
@@ -33,7 +34,7 @@ router.put('/users/:id', [
   param('id').isInt(),
   body('email').optional().isEmail(),
   body('password').optional().isLength({ min: 6 }),
-  body('role').optional().isIn(['ADMIN','TEACHER','STUDENT']),
+  body('role').optional().isIn(['ADMIN','TEACHER','STUDENT','SUPER_ADMIN','MANAGER']),
   body('name').optional().isString(),
   body('phoneNumber').optional().isString().isLength({ max: 32 }),
   body('grade').optional().isString(),
@@ -59,6 +60,17 @@ router.post('/groups', [
   body('teachers_ids.*').optional().isInt()
 ], controller.createGroup)
 router.get('/groups', controller.getAllGroups)
+router.get('/groups/:id', [param('id').isInt()], controller.getGroupById)
+router.put('/groups/:id', [
+  param('id').isInt(),
+  body('name').isString().isLength({ min: 1 }),
+  body('admins_ids').optional().isArray(),
+  body('admins_ids.*').optional().isInt(),
+  body('students_ids').optional().isArray(),
+  body('students_ids.*').optional().isInt(),
+  body('teachers_ids').optional().isArray(),
+  body('teachers_ids.*').optional().isInt()
+], controller.updateGroup)
 router.delete('/groups/:id', [param('id').isInt()], controller.deleteGroup)
 router.post('/groups/:id/members', [
   param('id').isInt(),
