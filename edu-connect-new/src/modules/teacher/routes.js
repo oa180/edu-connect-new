@@ -8,6 +8,10 @@ const router = Router()
 router.use(auth, authorize('TEACHER'))
 router.get('/students', controller.getMyStudents)
 router.post('/assign-student', [body('studentId').isInt()], controller.assignStudent)
+router.get('/groups', controller.getMyGroups)
+router.get('/groups/:groupId', [
+  param('groupId').isInt().withMessage('groupId must be an integer')
+], controller.getMyGroupById)
 
 // Attendance (Teacher)
 router.post('/attendance/sessions', [
