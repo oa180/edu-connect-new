@@ -149,6 +149,19 @@ const openapiSpec = {
           items: { type: 'array', items: { type: 'object', properties: { id: { type: 'integer' }, senderId: { type: 'integer' }, receiverId: { type: 'integer' }, content: { type: 'string' }, createdAt: { type: 'string', format: 'date-time' }, isRead: { type: 'boolean' } } } },
           total: { type: 'integer' }
         }
+      },
+      GroupWithMembers: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer' },
+          name: { type: 'string' },
+          adminOnly: { type: 'boolean' },
+          createdById: { type: 'integer' },
+          createdAt: { type: 'string', format: 'date-time' },
+          admins: { type: 'array', items: { $ref: '#/components/schemas/User' } },
+          teachers: { type: 'array', items: { $ref: '#/components/schemas/User' } },
+          students: { type: 'array', items: { $ref: '#/components/schemas/User' } }
+        }
       }
     }
   },
@@ -339,6 +352,23 @@ const openapiSpec = {
         responses: { '201': { description: 'Assigned' } }
       }
     },
+    '/teacher/groups': {
+      get: {
+        tags: ['Teacher'], summary: 'List my groups with members grouped by role',
+        responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/GroupWithMembers' } } } } } }
+      }
+    },
+    '/teacher/groups/{groupId}': {
+      get: {
+        tags: ['Teacher'], summary: 'Get my group by id with members grouped by role',
+        parameters: [ { name: 'groupId', in: 'path', required: true, schema: { type: 'integer' } } ],
+        responses: {
+          '200': { description: 'OK', content: { 'application/json': { schema: { $ref: '#/components/schemas/GroupWithMembers' } } } },
+          '403': { description: 'Not a member' },
+          '404': { description: 'Not found' }
+        }
+      }
+    },
     '/teacher/attendance/sessions': {
       post: {
         tags: ['Teacher'], summary: 'Create attendance session',
@@ -384,6 +414,23 @@ const openapiSpec = {
         responses: { '200': { description: 'OK' } }
       }
     },
+    '/student/groups': {
+      get: {
+        tags: ['Student'], summary: 'List my groups with members grouped by role',
+        responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/GroupWithMembers' } } } } } }
+      }
+    },
+    '/student/groups/{groupId}': {
+      get: {
+        tags: ['Student'], summary: 'Get my group by id with members grouped by role',
+        parameters: [ { name: 'groupId', in: 'path', required: true, schema: { type: 'integer' } } ],
+        responses: {
+          '200': { description: 'OK', content: { 'application/json': { schema: { $ref: '#/components/schemas/GroupWithMembers' } } } },
+          '403': { description: 'Not a member' },
+          '404': { description: 'Not found' }
+        }
+      }
+    },
     '/student/attendance': {
       get: {
         tags: ['Student'], summary: 'List my attendance',
@@ -416,8 +463,7 @@ const openapiSpec = {
         ],
         responses: { '200': { description: 'OK', content: { 'application/json': { schema: { $ref: '#/components/schemas/PaginatedMessages' } } } } }
       }
-    }
-    ,
+    },
     '/chat/users': {
       get: {
         tags: ['Chat'], summary: 'List chat users based on role',

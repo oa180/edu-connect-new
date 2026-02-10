@@ -22,3 +22,23 @@ async function listMyAttendance(req, res, next) {
 }
 
 module.exports.listMyAttendance = listMyAttendance
+
+async function getMyGroups(req, res, next) {
+  try {
+    const data = await service.getMyGroups(req.user.id)
+    res.json(data)
+  } catch (e) { next(e) }
+}
+
+async function getMyGroupById(req, res, next) {
+  const errors = validationResult(req)
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
+  try {
+    const groupId = parseInt(req.params.groupId, 10)
+    const data = await service.getMyGroupById(req.user.id, groupId)
+    res.json(data)
+  } catch (e) { next(e) }
+}
+
+module.exports.getMyGroups = getMyGroups
+module.exports.getMyGroupById = getMyGroupById

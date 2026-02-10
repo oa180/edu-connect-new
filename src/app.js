@@ -22,7 +22,14 @@ app.use(morgan('combined'))
 
 app.use('/api', routes)
 if (process.env.SWAGGER_ENABLED !== 'false') {
-  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(null, { swaggerUrl: '/api/docs.json' }))
+  const swaggerOptions = {
+    swaggerOptions: {
+      url: '/api/docs.json'
+    },
+    explorer: true
+  }
+  app.use('/api/docs', swaggerUi.serve)
+  app.get('/api/docs', swaggerUi.setup(null, swaggerOptions))
   app.get('/api/docs.json', (req, res) => {
     const dynamicSpec = { ...openapiSpec, servers: [{ url: `${req.protocol}://${req.get('host')}/api` }] }
     res.json(dynamicSpec)
