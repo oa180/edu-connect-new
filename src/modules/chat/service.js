@@ -23,9 +23,15 @@ async function getPrivateMessages(userId, otherId, { skip, limit }) {
     [userId, otherId, otherId, userId]
   )
   if (!rel[0]) throw Object.assign(new Error('Forbidden'), { status: 403 })
+  const safeLimit = Number.isInteger(limit) ? Math.min(Math.max(limit, 1), 100) : 20
+  const safeSkip = Number.isInteger(skip) ? Math.max(skip, 0) : 0
   const items = await db.query(
-    'SELECT id, senderId, receiverId, content, createdAt, isRead FROM Message WHERE (senderId = ? AND receiverId = ?) OR (senderId = ? AND receiverId = ?) ORDER BY createdAt DESC LIMIT ? OFFSET ?',
-    [userId, otherId, otherId, userId, limit, skip]
+    `SELECT id, senderId, receiverId, content, createdAt, isRead
+     FROM Message
+     WHERE (senderId = ? AND receiverId = ?) OR (senderId = ? AND receiverId = ?)
+     ORDER BY createdAt DESC
+     LIMIT ${safeLimit} OFFSET ${safeSkip}`,
+    [userId, otherId, otherId, userId]
   )
   const totalRows = await db.query(
     'SELECT COUNT(*) as cnt FROM Message WHERE (senderId = ? AND receiverId = ?) OR (senderId = ? AND receiverId = ?)',
@@ -38,9 +44,15 @@ async function getPrivateMessages(userId, otherId, { skip, limit }) {
 async function getGroupMessages(userId, groupId, { skip, limit }) {
   const member = await db.query('SELECT 1 FROM ChatGroupMember WHERE groupId = ? AND userId = ? LIMIT 1', [groupId, userId])
   if (!member[0]) throw Object.assign(new Error('Forbidden'), { status: 403 })
+  const safeLimit = Number.isInteger(limit) ? Math.min(Math.max(limit, 1), 100) : 20
+  const safeSkip = Number.isInteger(skip) ? Math.max(skip, 0) : 0
   const items = await db.query(
-    'SELECT id, groupId, senderId, content, createdAt FROM GroupMessage WHERE groupId = ? ORDER BY createdAt DESC LIMIT ? OFFSET ?',
-    [groupId, limit, skip]
+    `SELECT id, groupId, senderId, content, createdAt
+     FROM GroupMessage
+     WHERE groupId = ?
+     ORDER BY createdAt DESC
+     LIMIT ${safeLimit} OFFSET ${safeSkip}`,
+    [groupId]
   )
   const totalRows = await db.query('SELECT COUNT(*) as cnt FROM GroupMessage WHERE groupId = ?', [groupId])
   const total = totalRows[0]?.cnt || 0
