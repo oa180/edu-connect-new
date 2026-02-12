@@ -1,5 +1,6 @@
 const { validationResult } = require('express-validator')
 const service = require('./service.js')
+const { getPagination } = require('../../utils/pagination.js')
 
 async function uploadBanner(req, res, next) {
   try {
@@ -14,6 +15,16 @@ async function uploadBanner(req, res, next) {
     const baseUrl = `${req.protocol}://${req.get('host')}`
     const url = `${baseUrl}/uploads/banners/${created.filename}`
     res.status(201).json({ ...created, url })
+  } catch (e) { next(e) }
+}
+
+async function listBanners(req, res, next) {
+  try {
+    const page = getPagination(req.query)
+    const data = await service.listBanners(page)
+    const baseUrl = `${req.protocol}://${req.get('host')}`
+    const items = (data.items || []).map(b => ({ ...b, url: `${baseUrl}/uploads/banners/${b.filename}` }))
+    res.json({ items, total: data.total })
   } catch (e) { next(e) }
 }
 
@@ -42,4 +53,4 @@ async function getBannerImage(req, res, next) {
   } catch (e) { next(e) }
 }
 
-module.exports = { uploadBanner, getBanner, getBannerImage }
+module.exports = { uploadBanner, listBanners, getBanner, getBannerImage }

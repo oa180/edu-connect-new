@@ -17,8 +17,22 @@ async function getBannerById(id) {
   return rows[0] || null
 }
 
+async function listBanners({ skip, limit }) {
+  const safeLimit = Number.isInteger(limit) ? Math.min(Math.max(limit, 1), 100) : 20
+  const safeSkip = Number.isInteger(skip) ? Math.max(skip, 0) : 0
+  const items = await db.query(
+    `SELECT id, filename, originalName, mimeType, size, createdById, createdAt
+     FROM Banner
+     ORDER BY id DESC
+     LIMIT ${safeLimit} OFFSET ${safeSkip}`
+  )
+  const totalRows = await db.query('SELECT COUNT(*) as cnt FROM Banner')
+  const total = totalRows[0]?.cnt || 0
+  return { items, total }
+}
+
 function getBannerFilePath(filename) {
   return path.join(BANNERS_DIR, filename)
 }
 
-module.exports = { createBanner, getBannerById, getBannerFilePath, BANNERS_DIR }
+module.exports = { createBanner, getBannerById, listBanners, getBannerFilePath, BANNERS_DIR }
