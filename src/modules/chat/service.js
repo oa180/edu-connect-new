@@ -47,16 +47,26 @@ async function getGroupMessages(userId, groupId, { skip, limit }) {
   const safeLimit = Number.isInteger(limit) ? Math.min(Math.max(limit, 1), 100) : 20
   const safeSkip = Number.isInteger(skip) ? Math.max(skip, 0) : 0
   const items = await db.query(
-    `SELECT id, groupId, senderId, content, createdAt
-     FROM GroupMessage
-     WHERE groupId = ?
-     ORDER BY createdAt DESC
+    `SELECT gm.id, gm.groupId, gm.senderId, gm.content, gm.createdAt,
+            u.id as senderUserId, u.name as senderName, u.role as senderRole
+     FROM GroupMessage gm
+     JOIN \`User\` u ON u.id = gm.senderId
+     WHERE gm.groupId = ?
+     ORDER BY gm.createdAt DESC
      LIMIT ${safeLimit} OFFSET ${safeSkip}`,
     [groupId]
   )
   const totalRows = await db.query('SELECT COUNT(*) as cnt FROM GroupMessage WHERE groupId = ?', [groupId])
   const total = totalRows[0]?.cnt || 0
-  return { items: items.reverse(), total }
+  const shaped = items.reverse().map(m => ({
+    id: m.id,
+    groupId: m.groupId,
+    senderId: m.senderId,
+    sender: { id: m.senderUserId, name: m.senderName, role: m.senderRole },
+    content: m.content,
+    createdAt: m.createdAt
+  }))
+  return { items: shaped, total }
 }
 
 module.exports = { getChatUsers, getPrivateMessages, getGroupMessages }

@@ -4,6 +4,7 @@ const adminRoutes = require('../modules/admin/routes.js')
 const teacherRoutes = require('../modules/teacher/routes.js')
 const studentRoutes = require('../modules/student/routes.js')
 const chatRoutes = require('../modules/chat/routes.js')
+const bannerRoutes = require('../modules/banner/routes.js')
 
 const router = Router()
 router.use('/auth', authRoutes)
@@ -11,5 +12,6 @@ router.use('/admin', adminRoutes)
 router.use('/teacher', teacherRoutes)
 router.use('/student', studentRoutes)
 router.use('/chat', chatRoutes)
+router.use('/banners', bannerRoutes)
 
 module.exports = router

@@ -7,6 +7,7 @@ const errorHandler = require('./middlewares/error.middleware.js')
 const swaggerUi = require('swagger-ui-express')
 const openapiSpec = require('./docs/openapi.js')
 const config = require('./config/index.js')
+const path = require('path')
 
 const app = express()
 app.use(helmet())
@@ -19,6 +20,8 @@ app.use(cors({
 app.options('*', cors())
 app.use(express.json({ limit: '1mb' }))
 app.use(morgan('combined'))
+
+app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads')))
 
 app.use('/api', routes)
 if (process.env.SWAGGER_ENABLED !== 'false') {
