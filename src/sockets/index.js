@@ -11,8 +11,9 @@ function registerSocketHandlers(io, socket) {
     await db.query('INSERT INTO Message (senderId, receiverId, content) VALUES (?, ?, ?)', [userId, otherId, content])
     const rows = await db.query('SELECT * FROM Message WHERE senderId = ? AND receiverId = ? ORDER BY id DESC LIMIT 1', [userId, otherId])
     const msg = rows[0]
-    io.to(`user:${otherId}`).emit('private:message', msg)
-    io.to(`user:${userId}`).emit('private:message', msg)
+    const payload = { ...msg, sender: { id: socket.user.id, name: socket.user.name, role: socket.user.role } }
+    io.to(`user:${otherId}`).emit('private:message', payload)
+    io.to(`user:${userId}`).emit('private:message', payload)
   })
 
   socket.on('group:message', async ({ groupId, content }) => {
@@ -29,7 +30,8 @@ function registerSocketHandlers(io, socket) {
     const rows = await db.query('SELECT * FROM GroupMessage WHERE groupId = ? AND senderId = ? ORDER BY id DESC LIMIT 1', [gid, userId])
     const msg = rows[0]
     const members = await db.query('SELECT userId FROM ChatGroupMember WHERE groupId = ?', [gid])
-    members.forEach(m => io.to(`user:${m.userId}`).emit('group:message', msg))
+    const payload = { ...msg, sender: { id: socket.user.id, name: socket.user.name, role: socket.user.role } }
+    members.forEach(m => io.to(`user:${m.userId}`).emit('group:message', payload))
   })
 
   socket.on('message:read', async ({ messageId }) => {
@@ -39,7 +41,7 @@ function registerSocketHandlers(io, socket) {
     if (!msg) return
     if (msg.receiverId !== userId) return
     await db.query('UPDATE Message SET isRead = 1 WHERE id = ?', [mid])
-    const updated = { ...msg, isRead: 1 }
+    const updated = { ...msg, isRead: 1, reader: { id: socket.user.id, name: socket.user.name, role: socket.user.role } }
     io.to(`user:${msg.senderId}`).emit('message:read', updated)
   })
 }
