@@ -45,5 +45,6 @@ router.post('/', upload.single('image'), controller.uploadBanner)
 router.get('/', controller.listBanners)
 router.get('/:id', [param('id').isInt()], controller.getBanner)
 router.get('/:id/image', [param('id').isInt()], controller.getBannerImage)
+router.delete('/:id', [param('id').isInt()], controller.deleteBanner)
 
 module.exports = router

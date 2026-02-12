@@ -1,6 +1,7 @@
 const { validationResult } = require('express-validator')
 const service = require('./service.js')
 const { getPagination } = require('../../utils/pagination.js')
+const fs = require('fs')
 
 async function uploadBanner(req, res, next) {
   try {
@@ -53,4 +54,19 @@ async function getBannerImage(req, res, next) {
   } catch (e) { next(e) }
 }
 
-module.exports = { uploadBanner, listBanners, getBanner, getBannerImage }
+async function deleteBanner(req, res, next) {
+  const errors = validationResult(req)
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
+  try {
+    const id = parseInt(req.params.id, 10)
+    const deleted = await service.deleteBannerById(id)
+    if (!deleted) return res.status(404).json({ message: 'Not found' })
+    const filePath = service.getBannerFilePath(deleted.filename)
+    try {
+      fs.unlinkSync(filePath)
+    } catch (e) {}
+    res.status(204).end()
+  } catch (e) { next(e) }
+}
+
+module.exports = { uploadBanner, listBanners, getBanner, getBannerImage, deleteBanner }

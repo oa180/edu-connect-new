@@ -31,8 +31,15 @@ async function listBanners({ skip, limit }) {
   return { items, total }
 }
 
+async function deleteBannerById(id) {
+  const banner = await getBannerById(id)
+  if (!banner) return null
+  await db.query('DELETE FROM Banner WHERE id = ?', [id])
+  return banner
+}
+
 function getBannerFilePath(filename) {
   return path.join(BANNERS_DIR, filename)
 }
 
-module.exports = { createBanner, getBannerById, listBanners, getBannerFilePath, BANNERS_DIR }
+module.exports = { createBanner, getBannerById, listBanners, deleteBannerById, getBannerFilePath, BANNERS_DIR }
