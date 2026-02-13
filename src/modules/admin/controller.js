@@ -116,7 +116,8 @@ async function unpinGroup(req, res, next) {
   if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
   try {
     const groupId = parseInt(req.params.groupId, 10)
-    await service.unpinGroup(groupId)
+    const messageId = parseInt(req.params.messageId, 10)
+    await service.unpinGroupMessage(groupId, messageId)
     res.status(204).end()
   } catch (e) { next(e) }
 }

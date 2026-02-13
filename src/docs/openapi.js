@@ -150,6 +150,48 @@ const openapiSpec = {
           total: { type: 'integer' }
         }
       },
+      Banner: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer' },
+          filename: { type: 'string' },
+          originalName: { type: 'string', nullable: true },
+          mimeType: { type: 'string', nullable: true },
+          size: { type: 'integer', nullable: true },
+          createdById: { type: 'integer', nullable: true },
+          createdAt: { type: 'string', format: 'date-time' },
+          url: { type: 'string' }
+        }
+      },
+      BannerListResponse: {
+        type: 'object',
+        properties: {
+          items: { type: 'array', items: { $ref: '#/components/schemas/Banner' } },
+          total: { type: 'integer' }
+        }
+      },
+      PinnedMessage: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer' },
+          groupId: { type: 'integer' },
+          senderId: { type: 'integer' },
+          sender: { type: 'object', properties: { id: { type: 'integer' }, name: { type: 'string', nullable: true }, role: { type: 'string' } } },
+          content: { type: 'string' },
+          createdAt: { type: 'string', format: 'date-time' },
+          isPinned: { type: 'boolean' },
+          pinnedAt: { type: 'string', format: 'date-time', nullable: true },
+          pinnedById: { type: 'integer', nullable: true },
+          pinnedBy: { type: 'object', nullable: true, properties: { id: { type: 'integer' }, name: { type: 'string', nullable: true }, role: { type: 'string' } } }
+        }
+      },
+      PinnedMessageListResponse: {
+        type: 'object',
+        properties: {
+          items: { type: 'array', items: { $ref: '#/components/schemas/PinnedMessage' } },
+          total: { type: 'integer' }
+        }
+      },
       GroupWithMembers: {
         type: 'object',
         properties: {
@@ -291,13 +333,16 @@ const openapiSpec = {
         ],
         requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['content'], properties: { content: { type: 'string' } } } } } },
         responses: { '201': { description: 'Created' } }
-      },
+      }
+    },
+    '/admin/groups/{groupId}/pin/{messageId}': {
       delete: {
-        tags: ['Admin'], summary: 'Unpin current group message',
+        tags: ['Admin'], summary: 'Unpin a specific pinned message in the group',
         parameters: [
-          { name: 'groupId', in: 'path', required: true, schema: { type: 'integer' } }
+          { name: 'groupId', in: 'path', required: true, schema: { type: 'integer' } },
+          { name: 'messageId', in: 'path', required: true, schema: { type: 'integer' } }
         ],
-        responses: { '204': { description: 'Unpinned' } }
+        responses: { '204': { description: 'Unpinned' }, '404': { description: 'Not found' } }
       }
     },
     '/admin/attendance/sessions': {
@@ -464,10 +509,80 @@ const openapiSpec = {
         responses: { '200': { description: 'OK', content: { 'application/json': { schema: { $ref: '#/components/schemas/PaginatedMessages' } } } } }
       }
     },
+    '/chat/pins': {
+      get: {
+        tags: ['Chat'], summary: 'List pinned group messages visible to the current user',
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } }
+        ],
+        responses: { '200': { description: 'OK', content: { 'application/json': { schema: { $ref: '#/components/schemas/PinnedMessageListResponse' } } } } }
+      }
+    },
+    '/chat/groups/{groupId}/pin': {
+      get: {
+        tags: ['Chat'], summary: 'Get pinned message by group id',
+        parameters: [
+          { name: 'groupId', in: 'path', required: true, schema: { type: 'integer' } }
+        ],
+        responses: {
+          '200': { description: 'OK', content: { 'application/json': { schema: { $ref: '#/components/schemas/PinnedMessage' } } } },
+          '404': { description: 'Not found' },
+          '403': { description: 'Forbidden' }
+        }
+      }
+    },
     '/chat/users': {
       get: {
         tags: ['Chat'], summary: 'List chat users based on role',
         responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/User' } } } } } }
+      }
+    },
+    '/banners': {
+      get: {
+        tags: ['Banners'], summary: 'List banners',
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } }
+        ],
+        responses: { '200': { description: 'OK', content: { 'application/json': { schema: { $ref: '#/components/schemas/BannerListResponse' } } } } }
+      },
+      post: {
+        tags: ['Banners'], summary: 'Upload banner image',
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                required: ['image'],
+                properties: {
+                  image: { type: 'string', format: 'binary' }
+                }
+              }
+            }
+          }
+        },
+        responses: { '201': { description: 'Created', content: { 'application/json': { schema: { $ref: '#/components/schemas/Banner' } } } } }
+      }
+    },
+    '/banners/{id}': {
+      get: {
+        tags: ['Banners'], summary: 'Get banner by id',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { '200': { description: 'OK', content: { 'application/json': { schema: { $ref: '#/components/schemas/Banner' } } } }, '404': { description: 'Not found' } }
+      },
+      delete: {
+        tags: ['Banners'], summary: 'Delete banner by id',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { '204': { description: 'Deleted' }, '404': { description: 'Not found' } }
+      }
+    },
+    '/banners/{id}/image': {
+      get: {
+        tags: ['Banners'], summary: 'Get banner image file by id',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        responses: { '200': { description: 'Image file' }, '404': { description: 'Not found' } }
       }
     }
   }

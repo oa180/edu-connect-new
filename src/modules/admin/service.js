@@ -278,8 +278,12 @@ async function createPinnedMessage(groupId, content, adminId) {
   return rows[0]
 }
 
-async function unpinGroup(groupId) {
-  await db.query('UPDATE GroupMessage SET isPinned = 0, pinnedById = NULL, pinnedAt = NULL WHERE groupId = ? AND isPinned = 1', [groupId])
+async function unpinGroupMessage(groupId, messageId) {
+  const rows = await db.query('SELECT id, groupId, isPinned FROM GroupMessage WHERE id = ? AND groupId = ? LIMIT 1', [messageId, groupId])
+  const msg = rows[0]
+  if (!msg) throw Object.assign(new Error('Not found'), { status: 404 })
+  if (!msg.isPinned) return
+  await db.query('UPDATE GroupMessage SET isPinned = 0, pinnedById = NULL, pinnedAt = NULL WHERE id = ? AND groupId = ?', [messageId, groupId])
 }
 
 module.exports.getAllUsers = getAllUsers
@@ -292,7 +296,7 @@ module.exports.removeGroupMember = removeGroupMember
 module.exports.updateGroupSettings = updateGroupSettings
 module.exports.updateMemberPosting = updateMemberPosting
 module.exports.createPinnedMessage = createPinnedMessage
-module.exports.unpinGroup = unpinGroup
+module.exports.unpinGroupMessage = unpinGroupMessage
 
 // Attendance (Admin)
 async function createAttendanceSession(adminId, { groupId, date }) {
