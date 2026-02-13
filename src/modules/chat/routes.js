@@ -8,5 +8,7 @@ router.use(auth)
 router.get('/users', controller.getChatUsers)
 router.get('/private/:userId', [param('userId').isInt()], controller.getPrivateMessages)
 router.get('/groups/:groupId', [param('groupId').isInt()], controller.getGroupMessages)
+router.get('/pins', controller.listPinnedMessages)
+router.get('/groups/:groupId/pin', [param('groupId').isInt()], controller.getPinnedMessageByGroupId)
 
 module.exports = router

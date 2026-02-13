@@ -31,4 +31,23 @@ async function getGroupMessages(req, res, next) {
   } catch (e) { next(e) }
 }
 
-module.exports = { getChatUsers, getPrivateMessages, getGroupMessages }
+async function listPinnedMessages(req, res, next) {
+  try {
+    const page = getPagination(req.query)
+    const data = await service.listPinnedMessages(req.user, page)
+    res.json(data)
+  } catch (e) { next(e) }
+}
+
+async function getPinnedMessageByGroupId(req, res, next) {
+  const errors = validationResult(req)
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
+  try {
+    const groupId = parseInt(req.params.groupId, 10)
+    const data = await service.getPinnedMessageByGroupId(req.user, groupId)
+    if (!data) return res.status(404).json({ message: 'Not found' })
+    res.json(data)
+  } catch (e) { next(e) }
+}
+
+module.exports = { getChatUsers, getPrivateMessages, getGroupMessages, listPinnedMessages, getPinnedMessageByGroupId }
