@@ -1,5 +1,6 @@
 const { validationResult } = require('express-validator')
 const service = require('./service.js')
+const { getPagination } = require('../../utils/pagination.js')
 
 async function createUser(req, res, next) {
   const errors = validationResult(req)
@@ -122,6 +123,25 @@ async function unpinGroup(req, res, next) {
   } catch (e) { next(e) }
 }
 
+async function listPinnedMessages(req, res, next) {
+  try {
+    const page = getPagination(req.query)
+    const data = await service.listPinnedMessagesAdmin(page)
+    res.json(data)
+  } catch (e) { next(e) }
+}
+
+async function listPinnedMessagesByGroup(req, res, next) {
+  const errors = validationResult(req)
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
+  try {
+    const groupId = parseInt(req.params.groupId, 10)
+    const page = getPagination(req.query)
+    const data = await service.listPinnedMessagesByGroupAdmin(groupId, page)
+    res.json(data)
+  } catch (e) { next(e) }
+}
+
 // Attendance (Admin)
 async function createAttendanceSession(req, res, next) {
   const errors = validationResult(req)
@@ -168,4 +188,28 @@ async function getAttendanceSession(req, res, next) {
   } catch (e) { next(e) }
 }
 
-module.exports = { createUser, updateUser, deleteUser, createGroup, addGroupMembers, getAllUsers, getUserById, getAllGroups, getGroupById, updateGroup, deleteGroup, removeGroupMember, updateGroupSettings, updateMemberPosting, createPinnedMessage, unpinGroup, createAttendanceSession, upsertAttendanceRecords, updateAttendanceRecord, listAttendanceSessions, getAttendanceSession }
+module.exports = {
+  createUser,
+  updateUser,
+  deleteUser,
+  getAllUsers,
+  getUserById,
+  createGroup,
+  addGroupMembers,
+  getAllGroups,
+  getGroupById,
+  updateGroup,
+  deleteGroup,
+  removeGroupMember,
+  updateGroupSettings,
+  updateMemberPosting,
+  createPinnedMessage,
+  unpinGroup,
+  listPinnedMessages,
+  listPinnedMessagesByGroup,
+  createAttendanceSession,
+  listAttendanceSessions,
+  getAttendanceSession,
+  upsertAttendanceRecords,
+  updateAttendanceRecord
+}

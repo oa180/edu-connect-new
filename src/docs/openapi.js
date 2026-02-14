@@ -210,6 +210,36 @@ const openapiSpec = {
   },
   security: [{ bearerAuth: [] }],
   paths: {
+    '/chat/groups/{groupId}/messages/{messageId}/pin': {
+      post: {
+        tags: ['Chat'], summary: 'Pin a group message (teacher/student pin)',
+        description: 'Pins a regular group message by setting isPinned=1. Does not change isPinnedOriginal.',
+        parameters: [
+          { name: 'groupId', in: 'path', required: true, schema: { type: 'integer' } },
+          { name: 'messageId', in: 'path', required: true, schema: { type: 'integer' } }
+        ],
+        responses: {
+          '200': { description: 'OK', content: { 'application/json': { schema: { $ref: '#/components/schemas/PinnedMessage' } } } },
+          '400': { description: 'Bad request' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Not found' }
+        }
+      },
+      delete: {
+        tags: ['Chat'], summary: 'Unpin a group message (teacher/student pin)',
+        description: 'Unpins a regular group message by setting isPinned=0. Does not change isPinnedOriginal.',
+        parameters: [
+          { name: 'groupId', in: 'path', required: true, schema: { type: 'integer' } },
+          { name: 'messageId', in: 'path', required: true, schema: { type: 'integer' } }
+        ],
+        responses: {
+          '204': { description: 'Unpinned' },
+          '400': { description: 'Bad request' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Not found' }
+        }
+      }
+    },
     '/auth/login': {
       post: {
         tags: ['Auth'], summary: 'Login with email and password',
@@ -345,6 +375,27 @@ const openapiSpec = {
           { name: 'messageId', in: 'path', required: true, schema: { type: 'integer' } }
         ],
         responses: { '204': { description: 'Deleted/Unpinned' }, '400': { description: 'Cannot delete regular message via this endpoint' }, '404': { description: 'Not found' } }
+      }
+    },
+    '/admin/pins': {
+      get: {
+        tags: ['Admin'], summary: 'List all pinned group messages',
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } }
+        ],
+        responses: { '200': { description: 'OK', content: { 'application/json': { schema: { $ref: '#/components/schemas/PinnedMessageListResponse' } } } } }
+      }
+    },
+    '/admin/groups/{groupId}/pins': {
+      get: {
+        tags: ['Admin'], summary: 'List pinned group messages by group id',
+        parameters: [
+          { name: 'groupId', in: 'path', required: true, schema: { type: 'integer' } },
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } }
+        ],
+        responses: { '200': { description: 'OK', content: { 'application/json': { schema: { $ref: '#/components/schemas/PinnedMessageListResponse' } } } } }
       }
     },
     '/admin/attendance/sessions': {

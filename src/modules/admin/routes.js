@@ -86,6 +86,8 @@ router.patch('/groups/:id/settings', [param('id').isInt(), body('adminOnly').isB
 router.patch('/groups/:id/members/:userId', [param('id').isInt(), param('userId').isInt(), body('canPost').isBoolean()], controller.updateMemberPosting)
 router.post('/groups/:groupId/pin', [param('groupId').isInt(), body('content').isString().isLength({ min: 1 })], controller.createPinnedMessage)
 router.delete('/groups/:groupId/pin/:messageId', [param('groupId').isInt(), param('messageId').isInt()], controller.unpinGroup)
+router.get('/pins', controller.listPinnedMessages)
+router.get('/groups/:groupId/pins', [param('groupId').isInt()], controller.listPinnedMessagesByGroup)
 
 // Attendance (Admin)
 router.post('/attendance/sessions', [

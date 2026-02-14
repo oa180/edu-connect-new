@@ -56,7 +56,7 @@ async function getGroupMessages(userId, groupId, { skip, limit }) {
      LIMIT ${safeLimit} OFFSET ${safeSkip}`,
     [groupId]
   )
-  const totalRows = await db.query('SELECT COUNT(*) as cnt FROM GroupMessage WHERE groupId = ? AND gm.isPinnedOriginal = 0', [groupId])
+  const totalRows = await db.query('SELECT COUNT(*) as cnt FROM GroupMessage WHERE groupId = ? AND isPinnedOriginal = 0', [groupId])
   const total = totalRows[0]?.cnt || 0
   const shaped = items.reverse().map(m => ({
     id: m.id,
@@ -67,6 +67,68 @@ async function getGroupMessages(userId, groupId, { skip, limit }) {
     createdAt: m.createdAt
   }))
   return { items: shaped, total }
+}
+
+async function pinGroupMessage(currentUser, groupId, messageId) {
+  const member = await db.query('SELECT 1 FROM ChatGroupMember WHERE groupId = ? AND userId = ? LIMIT 1', [groupId, currentUser.id])
+  if (!member[0]) throw Object.assign(new Error('Forbidden'), { status: 403 })
+
+  const groupRows = await db.query('SELECT adminOnly FROM ChatGroup WHERE id = ? LIMIT 1', [groupId])
+  const group = groupRows[0]
+  if (group && group.adminOnly && currentUser.role !== 'ADMIN') {
+    throw Object.assign(new Error('Forbidden'), { status: 403 })
+  }
+
+  const msgRows = await db.query('SELECT id, groupId, isPinnedOriginal FROM GroupMessage WHERE id = ? AND groupId = ? LIMIT 1', [messageId, groupId])
+  const msg = msgRows[0]
+  if (!msg) throw Object.assign(new Error('Not found'), { status: 404 })
+  if (msg.isPinnedOriginal) throw Object.assign(new Error('Cannot pin an originally pinned message'), { status: 400 })
+
+  await db.query('UPDATE GroupMessage SET isPinned = 1, pinnedById = ?, pinnedAt = NOW() WHERE id = ? AND groupId = ?', [currentUser.id, messageId, groupId])
+
+  const rows = await db.query(
+    `SELECT gm.id, gm.groupId, gm.senderId, gm.content, gm.createdAt, gm.isPinned, gm.pinnedById, gm.pinnedAt, gm.isPinnedOriginal,
+            su.id as senderUserId, su.name as senderName, su.role as senderRole,
+            pu.id as pinnedByUserId, pu.name as pinnedByName, pu.role as pinnedByRole
+     FROM GroupMessage gm
+     JOIN \`User\` su ON su.id = gm.senderId
+     LEFT JOIN \`User\` pu ON pu.id = gm.pinnedById
+     WHERE gm.id = ? AND gm.groupId = ?
+     LIMIT 1`,
+    [messageId, groupId]
+  )
+  const m = rows[0]
+  return {
+    id: m.id,
+    groupId: m.groupId,
+    senderId: m.senderId,
+    sender: { id: m.senderUserId, name: m.senderName, role: m.senderRole },
+    content: m.content,
+    createdAt: m.createdAt,
+    isPinned: !!m.isPinned,
+    isPinnedOriginal: !!m.isPinnedOriginal,
+    pinnedAt: m.pinnedAt,
+    pinnedById: m.pinnedById,
+    pinnedBy: m.pinnedById ? { id: m.pinnedByUserId, name: m.pinnedByName, role: m.pinnedByRole } : null
+  }
+}
+
+async function unpinGroupMessage(currentUser, groupId, messageId) {
+  const member = await db.query('SELECT 1 FROM ChatGroupMember WHERE groupId = ? AND userId = ? LIMIT 1', [groupId, currentUser.id])
+  if (!member[0]) throw Object.assign(new Error('Forbidden'), { status: 403 })
+
+  const groupRows = await db.query('SELECT adminOnly FROM ChatGroup WHERE id = ? LIMIT 1', [groupId])
+  const group = groupRows[0]
+  if (group && group.adminOnly && currentUser.role !== 'ADMIN') {
+    throw Object.assign(new Error('Forbidden'), { status: 403 })
+  }
+
+  const msgRows = await db.query('SELECT id, groupId, isPinnedOriginal FROM GroupMessage WHERE id = ? AND groupId = ? LIMIT 1', [messageId, groupId])
+  const msg = msgRows[0]
+  if (!msg) throw Object.assign(new Error('Not found'), { status: 404 })
+  if (msg.isPinnedOriginal) throw Object.assign(new Error('Cannot unpin an originally pinned message via chat endpoint'), { status: 400 })
+
+  await db.query('UPDATE GroupMessage SET isPinned = 0, pinnedById = NULL, pinnedAt = NULL WHERE id = ? AND groupId = ?', [messageId, groupId])
 }
 
 async function listPinnedMessages(currentUser, { skip, limit }) {
@@ -176,4 +238,12 @@ async function getPinnedMessageByGroupId(currentUser, groupId) {
   }))
 }
 
-module.exports = { getChatUsers, getPrivateMessages, getGroupMessages, listPinnedMessages, getPinnedMessageByGroupId }
+module.exports = {
+  getChatUsers,
+  getPrivateMessages,
+  getGroupMessages,
+  listPinnedMessages,
+  getPinnedMessageByGroupId,
+  pinGroupMessage,
+  unpinGroupMessage
+}

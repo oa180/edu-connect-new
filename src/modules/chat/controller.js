@@ -50,4 +50,34 @@ async function getPinnedMessageByGroupId(req, res, next) {
   } catch (e) { next(e) }
 }
 
-module.exports = { getChatUsers, getPrivateMessages, getGroupMessages, listPinnedMessages, getPinnedMessageByGroupId }
+async function pinGroupMessage(req, res, next) {
+  const errors = validationResult(req)
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
+  try {
+    const groupId = parseInt(req.params.groupId, 10)
+    const messageId = parseInt(req.params.messageId, 10)
+    const data = await service.pinGroupMessage(req.user, groupId, messageId)
+    res.json(data)
+  } catch (e) { next(e) }
+}
+
+async function unpinGroupMessage(req, res, next) {
+  const errors = validationResult(req)
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
+  try {
+    const groupId = parseInt(req.params.groupId, 10)
+    const messageId = parseInt(req.params.messageId, 10)
+    await service.unpinGroupMessage(req.user, groupId, messageId)
+    res.status(204).end()
+  } catch (e) { next(e) }
+}
+
+module.exports = {
+  getChatUsers,
+  getPrivateMessages,
+  getGroupMessages,
+  listPinnedMessages,
+  getPinnedMessageByGroupId,
+  pinGroupMessage,
+  unpinGroupMessage
+}

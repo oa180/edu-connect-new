@@ -297,6 +297,75 @@ async function unpinGroupMessage(groupId, messageId) {
   }
 }
 
+async function listPinnedMessagesAdmin({ skip, limit } = {}) {
+  const safeLimit = Number.isInteger(limit) ? Math.min(Math.max(limit, 1), 100) : 20
+  const safeSkip = Number.isInteger(skip) ? Math.max(skip, 0) : 0
+  const items = await db.query(
+    `SELECT gm.id, gm.groupId, gm.senderId, gm.content, gm.createdAt, gm.isPinned, gm.pinnedById, gm.pinnedAt, gm.isPinnedOriginal,
+            su.id as senderUserId, su.name as senderName, su.role as senderRole,
+            pu.id as pinnedByUserId, pu.name as pinnedByName, pu.role as pinnedByRole
+     FROM GroupMessage gm
+     JOIN \`User\` su ON su.id = gm.senderId
+     LEFT JOIN \`User\` pu ON pu.id = gm.pinnedById
+     WHERE gm.isPinned = 1
+     ORDER BY gm.pinnedAt DESC, gm.id DESC
+     LIMIT ${safeLimit} OFFSET ${safeSkip}`
+  )
+  const totalRows = await db.query('SELECT COUNT(*) as cnt FROM GroupMessage WHERE isPinned = 1')
+  const total = totalRows[0]?.cnt || 0
+  return {
+    items: items.map(m => ({
+      id: m.id,
+      groupId: m.groupId,
+      senderId: m.senderId,
+      sender: { id: m.senderUserId, name: m.senderName, role: m.senderRole },
+      content: m.content,
+      createdAt: m.createdAt,
+      isPinned: !!m.isPinned,
+      isPinnedOriginal: !!m.isPinnedOriginal,
+      pinnedAt: m.pinnedAt,
+      pinnedById: m.pinnedById,
+      pinnedBy: m.pinnedById ? { id: m.pinnedByUserId, name: m.pinnedByName, role: m.pinnedByRole } : null
+    })),
+    total
+  }
+}
+
+async function listPinnedMessagesByGroupAdmin(groupId, { skip, limit } = {}) {
+  const safeLimit = Number.isInteger(limit) ? Math.min(Math.max(limit, 1), 100) : 20
+  const safeSkip = Number.isInteger(skip) ? Math.max(skip, 0) : 0
+  const items = await db.query(
+    `SELECT gm.id, gm.groupId, gm.senderId, gm.content, gm.createdAt, gm.isPinned, gm.pinnedById, gm.pinnedAt, gm.isPinnedOriginal,
+            su.id as senderUserId, su.name as senderName, su.role as senderRole,
+            pu.id as pinnedByUserId, pu.name as pinnedByName, pu.role as pinnedByRole
+     FROM GroupMessage gm
+     JOIN \`User\` su ON su.id = gm.senderId
+     LEFT JOIN \`User\` pu ON pu.id = gm.pinnedById
+     WHERE gm.isPinned = 1 AND gm.groupId = ?
+     ORDER BY gm.pinnedAt DESC, gm.id DESC
+     LIMIT ${safeLimit} OFFSET ${safeSkip}`,
+    [groupId]
+  )
+  const totalRows = await db.query('SELECT COUNT(*) as cnt FROM GroupMessage WHERE isPinned = 1 AND groupId = ?', [groupId])
+  const total = totalRows[0]?.cnt || 0
+  return {
+    items: items.map(m => ({
+      id: m.id,
+      groupId: m.groupId,
+      senderId: m.senderId,
+      sender: { id: m.senderUserId, name: m.senderName, role: m.senderRole },
+      content: m.content,
+      createdAt: m.createdAt,
+      isPinned: !!m.isPinned,
+      isPinnedOriginal: !!m.isPinnedOriginal,
+      pinnedAt: m.pinnedAt,
+      pinnedById: m.pinnedById,
+      pinnedBy: m.pinnedById ? { id: m.pinnedByUserId, name: m.pinnedByName, role: m.pinnedByRole } : null
+    })),
+    total
+  }
+}
+
 module.exports.getAllUsers = getAllUsers
 module.exports.getUserById = getUserById
 module.exports.getAllGroups = getAllGroups
@@ -308,6 +377,8 @@ module.exports.updateGroupSettings = updateGroupSettings
 module.exports.updateMemberPosting = updateMemberPosting
 module.exports.createPinnedMessage = createPinnedMessage
 module.exports.unpinGroupMessage = unpinGroupMessage
+module.exports.listPinnedMessagesAdmin = listPinnedMessagesAdmin
+module.exports.listPinnedMessagesByGroupAdmin = listPinnedMessagesByGroupAdmin
 
 // Attendance (Admin)
 async function createAttendanceSession(adminId, { groupId, date }) {
