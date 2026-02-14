@@ -380,6 +380,7 @@ const openapiSpec = {
     '/admin/pins': {
       get: {
         tags: ['Admin'], summary: 'List all pinned group messages',
+        description: 'Returns only messages that were originally created as pinned (isPinnedOriginal=1).',
         parameters: [
           { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
           { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } }
@@ -390,6 +391,7 @@ const openapiSpec = {
     '/admin/groups/{groupId}/pins': {
       get: {
         tags: ['Admin'], summary: 'List pinned group messages by group id',
+        description: 'Returns only messages that were originally created as pinned (isPinnedOriginal=1).',
         parameters: [
           { name: 'groupId', in: 'path', required: true, schema: { type: 'integer' } },
           { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },

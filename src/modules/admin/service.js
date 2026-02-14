@@ -307,11 +307,11 @@ async function listPinnedMessagesAdmin({ skip, limit } = {}) {
      FROM GroupMessage gm
      JOIN \`User\` su ON su.id = gm.senderId
      LEFT JOIN \`User\` pu ON pu.id = gm.pinnedById
-     WHERE gm.isPinned = 1
+     WHERE gm.isPinned = 1 AND gm.isPinnedOriginal = 1
      ORDER BY gm.pinnedAt DESC, gm.id DESC
      LIMIT ${safeLimit} OFFSET ${safeSkip}`
   )
-  const totalRows = await db.query('SELECT COUNT(*) as cnt FROM GroupMessage WHERE isPinned = 1')
+  const totalRows = await db.query('SELECT COUNT(*) as cnt FROM GroupMessage WHERE isPinned = 1 AND isPinnedOriginal = 1')
   const total = totalRows[0]?.cnt || 0
   return {
     items: items.map(m => ({
@@ -341,12 +341,12 @@ async function listPinnedMessagesByGroupAdmin(groupId, { skip, limit } = {}) {
      FROM GroupMessage gm
      JOIN \`User\` su ON su.id = gm.senderId
      LEFT JOIN \`User\` pu ON pu.id = gm.pinnedById
-     WHERE gm.isPinned = 1 AND gm.groupId = ?
+     WHERE gm.isPinned = 1 AND gm.isPinnedOriginal = 1 AND gm.groupId = ?
      ORDER BY gm.pinnedAt DESC, gm.id DESC
      LIMIT ${safeLimit} OFFSET ${safeSkip}`,
     [groupId]
   )
-  const totalRows = await db.query('SELECT COUNT(*) as cnt FROM GroupMessage WHERE isPinned = 1 AND groupId = ?', [groupId])
+  const totalRows = await db.query('SELECT COUNT(*) as cnt FROM GroupMessage WHERE isPinned = 1 AND isPinnedOriginal = 1 AND groupId = ?', [groupId])
   const total = totalRows[0]?.cnt || 0
   return {
     items: items.map(m => ({
