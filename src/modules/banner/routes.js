@@ -40,7 +40,7 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }
 })
 
-router.get('/', auth, controller.listBanners)
+router.get('/', controller.listBanners)
 router.get('/:id', auth, [param('id').isInt()], controller.getBanner)
 router.get('/:id/image', auth, [param('id').isInt()], controller.getBannerImage)
 router.post('/', auth, upload.single('image'), controller.uploadBanner)
