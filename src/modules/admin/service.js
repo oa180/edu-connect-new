@@ -302,9 +302,11 @@ async function listPinnedMessagesAdmin({ skip, limit } = {}) {
   const safeSkip = Number.isInteger(skip) ? Math.max(skip, 0) : 0
   const items = await db.query(
     `SELECT gm.id, gm.groupId, gm.senderId, gm.content, gm.createdAt, gm.isPinned, gm.pinnedById, gm.pinnedAt, gm.isPinnedOriginal,
+            cg.id as groupChatId, cg.name as groupName, cg.adminOnly as groupAdminOnly, cg.createdById as groupCreatedById, cg.createdAt as groupCreatedAt,
             su.id as senderUserId, su.name as senderName, su.role as senderRole,
             pu.id as pinnedByUserId, pu.name as pinnedByName, pu.role as pinnedByRole
      FROM GroupMessage gm
+     JOIN ChatGroup cg ON cg.id = gm.groupId
      JOIN \`User\` su ON su.id = gm.senderId
      LEFT JOIN \`User\` pu ON pu.id = gm.pinnedById
      WHERE gm.isPinned = 1 AND gm.isPinnedOriginal = 1
@@ -317,6 +319,13 @@ async function listPinnedMessagesAdmin({ skip, limit } = {}) {
     items: items.map(m => ({
       id: m.id,
       groupId: m.groupId,
+      group: {
+        id: m.groupChatId,
+        name: m.groupName,
+        adminOnly: !!m.groupAdminOnly,
+        createdById: m.groupCreatedById,
+        createdAt: m.groupCreatedAt
+      },
       senderId: m.senderId,
       sender: { id: m.senderUserId, name: m.senderName, role: m.senderRole },
       content: m.content,
@@ -336,9 +345,11 @@ async function listPinnedMessagesByGroupAdmin(groupId, { skip, limit } = {}) {
   const safeSkip = Number.isInteger(skip) ? Math.max(skip, 0) : 0
   const items = await db.query(
     `SELECT gm.id, gm.groupId, gm.senderId, gm.content, gm.createdAt, gm.isPinned, gm.pinnedById, gm.pinnedAt, gm.isPinnedOriginal,
+            cg.id as groupChatId, cg.name as groupName, cg.adminOnly as groupAdminOnly, cg.createdById as groupCreatedById, cg.createdAt as groupCreatedAt,
             su.id as senderUserId, su.name as senderName, su.role as senderRole,
             pu.id as pinnedByUserId, pu.name as pinnedByName, pu.role as pinnedByRole
      FROM GroupMessage gm
+     JOIN ChatGroup cg ON cg.id = gm.groupId
      JOIN \`User\` su ON su.id = gm.senderId
      LEFT JOIN \`User\` pu ON pu.id = gm.pinnedById
      WHERE gm.isPinned = 1 AND gm.isPinnedOriginal = 1 AND gm.groupId = ?
@@ -352,6 +363,13 @@ async function listPinnedMessagesByGroupAdmin(groupId, { skip, limit } = {}) {
     items: items.map(m => ({
       id: m.id,
       groupId: m.groupId,
+      group: {
+        id: m.groupChatId,
+        name: m.groupName,
+        adminOnly: !!m.groupAdminOnly,
+        createdById: m.groupCreatedById,
+        createdAt: m.groupCreatedAt
+      },
       senderId: m.senderId,
       sender: { id: m.senderUserId, name: m.senderName, role: m.senderRole },
       content: m.content,

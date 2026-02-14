@@ -175,6 +175,7 @@ const openapiSpec = {
         properties: {
           id: { type: 'integer' },
           groupId: { type: 'integer' },
+          group: { $ref: '#/components/schemas/GroupWithMembers' },
           senderId: { type: 'integer' },
           sender: { type: 'object', properties: { id: { type: 'integer' }, name: { type: 'string', nullable: true }, role: { type: 'string' } } },
           content: { type: 'string' },
