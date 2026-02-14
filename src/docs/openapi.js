@@ -180,6 +180,7 @@ const openapiSpec = {
           content: { type: 'string' },
           createdAt: { type: 'string', format: 'date-time' },
           isPinned: { type: 'boolean' },
+          isPinnedOriginal: { type: 'boolean' },
           pinnedAt: { type: 'string', format: 'date-time', nullable: true },
           pinnedById: { type: 'integer', nullable: true },
           pinnedBy: { type: 'object', nullable: true, properties: { id: { type: 'integer' }, name: { type: 'string', nullable: true }, role: { type: 'string' } } }
@@ -337,12 +338,13 @@ const openapiSpec = {
     },
     '/admin/groups/{groupId}/pin/{messageId}': {
       delete: {
-        tags: ['Admin'], summary: 'Unpin a specific pinned message in the group',
+        tags: ['Admin'], summary: 'Unpin or delete a specific pinned message in the group',
+        description: 'Hard deletes the message if it was originally created as pinned (isPinnedOriginal=1). Rejects request if it is a regular message (isPinnedOriginal=0).',
         parameters: [
           { name: 'groupId', in: 'path', required: true, schema: { type: 'integer' } },
           { name: 'messageId', in: 'path', required: true, schema: { type: 'integer' } }
         ],
-        responses: { '204': { description: 'Unpinned' }, '404': { description: 'Not found' } }
+        responses: { '204': { description: 'Deleted/Unpinned' }, '400': { description: 'Cannot delete regular message via this endpoint' }, '404': { description: 'Not found' } }
       }
     },
     '/admin/attendance/sessions': {
@@ -521,13 +523,12 @@ const openapiSpec = {
     },
     '/chat/groups/{groupId}/pin': {
       get: {
-        tags: ['Chat'], summary: 'Get pinned message by group id',
+        tags: ['Chat'], summary: 'Get all pinned messages for a group',
         parameters: [
           { name: 'groupId', in: 'path', required: true, schema: { type: 'integer' } }
         ],
         responses: {
-          '200': { description: 'OK', content: { 'application/json': { schema: { $ref: '#/components/schemas/PinnedMessage' } } } },
-          '404': { description: 'Not found' },
+          '200': { description: 'OK', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/PinnedMessage' } } } } },
           '403': { description: 'Forbidden' }
         }
       }

@@ -270,20 +270,31 @@ async function updateMemberPosting(groupId, userId, { canPost }) {
 }
 
 async function createPinnedMessage(groupId, content, adminId) {
-  // Unpin any existing pinned messages for this group (single pin policy)
-  await db.query('UPDATE GroupMessage SET isPinned = 0, pinnedById = NULL, pinnedAt = NULL WHERE groupId = ? AND isPinned = 1', [groupId])
-  // Create a new pinned message authored by the admin
-  await db.query('INSERT INTO GroupMessage (groupId, senderId, content, isPinned, pinnedById, pinnedAt) VALUES (?, ?, ?, 1, ?, NOW())', [groupId, adminId, content, adminId])
-  const rows = await db.query('SELECT id, groupId, senderId, content, createdAt, isPinned, pinnedById, pinnedAt FROM GroupMessage WHERE groupId = ? AND isPinned = 1 ORDER BY pinnedAt DESC LIMIT 1', [groupId])
+  // Create a new pinned message authored by the admin with isPinnedOriginal = 1
+  await db.query(
+    'INSERT INTO GroupMessage (groupId, senderId, content, isPinned, pinnedById, pinnedAt, isPinnedOriginal) VALUES (?, ?, ?, 1, ?, NOW(), 1)',
+    [groupId, adminId, content, adminId]
+  )
+  const rows = await db.query(
+    'SELECT id, groupId, senderId, content, createdAt, isPinned, pinnedById, pinnedAt, isPinnedOriginal FROM GroupMessage WHERE groupId = ? AND isPinned = 1 ORDER BY id DESC LIMIT 1',
+    [groupId]
+  )
   return rows[0]
 }
 
 async function unpinGroupMessage(groupId, messageId) {
-  const rows = await db.query('SELECT id, groupId, isPinned FROM GroupMessage WHERE id = ? AND groupId = ? LIMIT 1', [messageId, groupId])
+  const rows = await db.query('SELECT id, groupId, isPinned, isPinnedOriginal FROM GroupMessage WHERE id = ? AND groupId = ? LIMIT 1', [messageId, groupId])
   const msg = rows[0]
   if (!msg) throw Object.assign(new Error('Not found'), { status: 404 })
   if (!msg.isPinned) return
-  await db.query('UPDATE GroupMessage SET isPinned = 0, pinnedById = NULL, pinnedAt = NULL WHERE id = ? AND groupId = ?', [messageId, groupId])
+
+  if (msg.isPinnedOriginal) {
+    // Hard delete if it was originally created as a pinned message
+    await db.query('DELETE FROM GroupMessage WHERE id = ? AND groupId = ?', [messageId, groupId])
+  } else {
+    // Reject request if it was a normal message pinned later (user requested rejection)
+    throw Object.assign(new Error('Cannot delete a regular message via unpin endpoint. Please unpin it instead.'), { status: 400 })
+  }
 }
 
 module.exports.getAllUsers = getAllUsers

@@ -51,12 +51,12 @@ async function getGroupMessages(userId, groupId, { skip, limit }) {
             u.id as senderUserId, u.name as senderName, u.role as senderRole
      FROM GroupMessage gm
      JOIN \`User\` u ON u.id = gm.senderId
-     WHERE gm.groupId = ?
+     WHERE gm.groupId = ? AND gm.isPinnedOriginal = 0
      ORDER BY gm.createdAt DESC
      LIMIT ${safeLimit} OFFSET ${safeSkip}`,
     [groupId]
   )
-  const totalRows = await db.query('SELECT COUNT(*) as cnt FROM GroupMessage WHERE groupId = ?', [groupId])
+  const totalRows = await db.query('SELECT COUNT(*) as cnt FROM GroupMessage WHERE groupId = ? AND gm.isPinnedOriginal = 0', [groupId])
   const total = totalRows[0]?.cnt || 0
   const shaped = items.reverse().map(m => ({
     id: m.id,
@@ -75,7 +75,7 @@ async function listPinnedMessages(currentUser, { skip, limit }) {
 
   if (currentUser.role === 'ADMIN') {
     const items = await db.query(
-      `SELECT gm.id, gm.groupId, gm.senderId, gm.content, gm.createdAt, gm.isPinned, gm.pinnedById, gm.pinnedAt,
+      `SELECT gm.id, gm.groupId, gm.senderId, gm.content, gm.createdAt, gm.isPinned, gm.pinnedById, gm.pinnedAt, gm.isPinnedOriginal,
               su.id as senderUserId, su.name as senderName, su.role as senderRole,
               pu.id as pinnedByUserId, pu.name as pinnedByName, pu.role as pinnedByRole
        FROM GroupMessage gm
@@ -96,6 +96,7 @@ async function listPinnedMessages(currentUser, { skip, limit }) {
         content: m.content,
         createdAt: m.createdAt,
         isPinned: !!m.isPinned,
+        isPinnedOriginal: !!m.isPinnedOriginal,
         pinnedAt: m.pinnedAt,
         pinnedById: m.pinnedById,
         pinnedBy: m.pinnedById ? { id: m.pinnedByUserId, name: m.pinnedByName, role: m.pinnedByRole } : null
@@ -106,7 +107,7 @@ async function listPinnedMessages(currentUser, { skip, limit }) {
 
   // Teacher / Student: only pinned messages in groups they are a member of
   const items = await db.query(
-    `SELECT gm.id, gm.groupId, gm.senderId, gm.content, gm.createdAt, gm.isPinned, gm.pinnedById, gm.pinnedAt,
+    `SELECT gm.id, gm.groupId, gm.senderId, gm.content, gm.createdAt, gm.isPinned, gm.pinnedById, gm.pinnedAt, gm.isPinnedOriginal,
             su.id as senderUserId, su.name as senderName, su.role as senderRole,
             pu.id as pinnedByUserId, pu.name as pinnedByName, pu.role as pinnedByRole
      FROM GroupMessage gm
@@ -135,6 +136,7 @@ async function listPinnedMessages(currentUser, { skip, limit }) {
       content: m.content,
       createdAt: m.createdAt,
       isPinned: !!m.isPinned,
+      isPinnedOriginal: !!m.isPinnedOriginal,
       pinnedAt: m.pinnedAt,
       pinnedById: m.pinnedById,
       pinnedBy: m.pinnedById ? { id: m.pinnedByUserId, name: m.pinnedByName, role: m.pinnedByRole } : null
@@ -148,21 +150,18 @@ async function getPinnedMessageByGroupId(currentUser, groupId) {
     const member = await db.query('SELECT 1 FROM ChatGroupMember WHERE groupId = ? AND userId = ? LIMIT 1', [groupId, currentUser.id])
     if (!member[0]) throw Object.assign(new Error('Forbidden'), { status: 403 })
   }
-  const rows = await db.query(
-    `SELECT gm.id, gm.groupId, gm.senderId, gm.content, gm.createdAt, gm.isPinned, gm.pinnedById, gm.pinnedAt,
+  const items = await db.query(
+    `SELECT gm.id, gm.groupId, gm.senderId, gm.content, gm.createdAt, gm.isPinned, gm.pinnedById, gm.pinnedAt, gm.isPinnedOriginal,
             su.id as senderUserId, su.name as senderName, su.role as senderRole,
             pu.id as pinnedByUserId, pu.name as pinnedByName, pu.role as pinnedByRole
      FROM GroupMessage gm
      JOIN \`User\` su ON su.id = gm.senderId
      LEFT JOIN \`User\` pu ON pu.id = gm.pinnedById
      WHERE gm.groupId = ? AND gm.isPinned = 1
-     ORDER BY gm.pinnedAt DESC, gm.id DESC
-     LIMIT 1`,
+     ORDER BY gm.pinnedAt DESC, gm.id DESC`,
     [groupId]
   )
-  const m = rows[0]
-  if (!m) return null
-  return {
+  return items.map(m => ({
     id: m.id,
     groupId: m.groupId,
     senderId: m.senderId,
@@ -170,10 +169,11 @@ async function getPinnedMessageByGroupId(currentUser, groupId) {
     content: m.content,
     createdAt: m.createdAt,
     isPinned: !!m.isPinned,
+    isPinnedOriginal: !!m.isPinnedOriginal,
     pinnedAt: m.pinnedAt,
     pinnedById: m.pinnedById,
     pinnedBy: m.pinnedById ? { id: m.pinnedByUserId, name: m.pinnedByName, role: m.pinnedByRole } : null
-  }
+  }))
 }
 
 module.exports = { getChatUsers, getPrivateMessages, getGroupMessages, listPinnedMessages, getPinnedMessageByGroupId }

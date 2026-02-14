@@ -45,7 +45,7 @@ async function getPinnedMessageByGroupId(req, res, next) {
   try {
     const groupId = parseInt(req.params.groupId, 10)
     const data = await service.getPinnedMessageByGroupId(req.user, groupId)
-    if (!data) return res.status(404).json({ message: 'Not found' })
+    // data is now an array
     res.json(data)
   } catch (e) { next(e) }
 }
