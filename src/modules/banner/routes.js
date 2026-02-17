@@ -1,5 +1,5 @@
 const { Router } = require('express')
-const { param } = require('express-validator')
+const { param, body } = require('express-validator')
 const multer = require('multer')
 const path = require('path')
 const fs = require('fs')
@@ -43,7 +43,11 @@ const upload = multer({
 router.get('/', controller.listBanners)
 router.get('/:id', auth, [param('id').isInt()], controller.getBanner)
 router.get('/:id/image', auth, [param('id').isInt()], controller.getBannerImage)
-router.post('/', auth, upload.single('image'), controller.uploadBanner)
+router.post('/', auth, [
+  body('title').optional().isString(),
+  body('subtitle').optional().isString(),
+  body('description').optional().isString()
+], upload.single('image'), controller.uploadBanner)
 router.delete('/:id', auth, [param('id').isInt()], controller.deleteBanner)
 
 module.exports = router

@@ -135,6 +135,41 @@ async function listPinnedMessages(currentUser, { skip, limit }) {
   const safeLimit = Number.isInteger(limit) ? Math.min(Math.max(limit, 1), 100) : 20
   const safeSkip = Number.isInteger(skip) ? Math.max(skip, 0) : 0
 
+  async function loadGroupsWithMembers(groupIds) {
+    const uniqueIds = Array.from(new Set((groupIds || []).map(id => parseInt(id, 10)).filter(v => Number.isInteger(v))))
+    if (uniqueIds.length === 0) return new Map()
+    const placeholders = uniqueIds.map(() => '?').join(',')
+    const groups = await db.query(
+      `SELECT id, name, adminOnly, createdById, createdAt FROM ChatGroup WHERE id IN (${placeholders})`,
+      uniqueIds
+    )
+    const byGroup = new Map(groups.map(g => [g.id, { ...g, adminOnly: !!g.adminOnly, admins: [], teachers: [], students: [] }]))
+    const members = await db.query(
+      `SELECT m.groupId, u.id as userId, u.email, u.name, u.phoneNumber, u.grade, u.major, u.role
+       FROM ChatGroupMember m
+       JOIN \`User\` u ON u.id = m.userId
+       WHERE m.groupId IN (${placeholders})`,
+      uniqueIds
+    )
+    for (const row of members) {
+      const entry = byGroup.get(row.groupId)
+      if (!entry) continue
+      const user = {
+        id: row.userId,
+        email: row.email,
+        name: row.name,
+        phoneNumber: row.phoneNumber,
+        grade: row.grade,
+        major: row.major,
+        role: row.role
+      }
+      if (['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(row.role)) entry.admins.push(user)
+      else if (row.role === 'TEACHER') entry.teachers.push(user)
+      else if (row.role === 'STUDENT') entry.students.push(user)
+    }
+    return byGroup
+  }
+
   if (currentUser.role === 'ADMIN') {
     const items = await db.query(
       `SELECT gm.id, gm.groupId, gm.senderId, gm.content, gm.createdAt, gm.isPinned, gm.pinnedById, gm.pinnedAt, gm.isPinnedOriginal,
@@ -149,10 +184,13 @@ async function listPinnedMessages(currentUser, { skip, limit }) {
     )
     const totalRows = await db.query('SELECT COUNT(*) as cnt FROM GroupMessage WHERE isPinned = 1')
     const total = totalRows[0]?.cnt || 0
+
+    const groupMap = await loadGroupsWithMembers(items.map(i => i.groupId))
     return {
       items: items.map(m => ({
         id: m.id,
         groupId: m.groupId,
+        group: groupMap.get(m.groupId) || null,
         senderId: m.senderId,
         sender: { id: m.senderUserId, name: m.senderName, role: m.senderRole },
         content: m.content,
@@ -189,10 +227,13 @@ async function listPinnedMessages(currentUser, { skip, limit }) {
     [currentUser.id]
   )
   const total = totalRows[0]?.cnt || 0
+
+  const groupMap = await loadGroupsWithMembers(items.map(i => i.groupId))
   return {
     items: items.map(m => ({
       id: m.id,
       groupId: m.groupId,
+      group: groupMap.get(m.groupId) || null,
       senderId: m.senderId,
       sender: { id: m.senderUserId, name: m.senderName, role: m.senderRole },
       content: m.content,

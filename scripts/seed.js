@@ -15,6 +15,9 @@ async function main() {
   await query(`CREATE TABLE IF NOT EXISTS Banner (
     id INT AUTO_INCREMENT PRIMARY KEY,
     filename VARCHAR(255) NOT NULL,
+    title VARCHAR(255) NULL,
+    subtitle VARCHAR(255) NULL,
+    description TEXT NULL,
     originalName VARCHAR(255) NULL,
     mimeType VARCHAR(64) NULL,
     size INT NULL,
@@ -22,6 +25,11 @@ async function main() {
     createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_banner_createdById (createdById)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`)
+
+  // Backward-compatible column adds (if table already existed)
+  try { await query('ALTER TABLE Banner ADD COLUMN title VARCHAR(255) NULL') } catch (e) {}
+  try { await query('ALTER TABLE Banner ADD COLUMN subtitle VARCHAR(255) NULL') } catch (e) {}
+  try { await query('ALTER TABLE Banner ADD COLUMN description TEXT NULL') } catch (e) {}
 
   const email = config.admin.email
   const password = config.admin.password

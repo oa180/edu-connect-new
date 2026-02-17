@@ -8,6 +8,9 @@ async function uploadBanner(req, res, next) {
     if (!req.file) return res.status(400).json({ message: 'image file is required' })
     const created = await service.createBanner({
       filename: req.file.filename,
+      title: req.body ? req.body.title : undefined,
+      subtitle: req.body ? req.body.subtitle : undefined,
+      description: req.body ? req.body.description : undefined,
       originalName: req.file.originalname,
       mimeType: req.file.mimetype,
       size: req.file.size,

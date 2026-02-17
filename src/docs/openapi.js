@@ -155,6 +155,9 @@ const openapiSpec = {
         properties: {
           id: { type: 'integer' },
           filename: { type: 'string' },
+          title: { type: 'string', nullable: true },
+          subtitle: { type: 'string', nullable: true },
+          description: { type: 'string', nullable: true },
           originalName: { type: 'string', nullable: true },
           mimeType: { type: 'string', nullable: true },
           size: { type: 'integer', nullable: true },
@@ -612,7 +615,10 @@ const openapiSpec = {
                 type: 'object',
                 required: ['image'],
                 properties: {
-                  image: { type: 'string', format: 'binary' }
+                  image: { type: 'string', format: 'binary' },
+                  title: { type: 'string' },
+                  subtitle: { type: 'string' },
+                  description: { type: 'string' }
                 }
               }
             }
