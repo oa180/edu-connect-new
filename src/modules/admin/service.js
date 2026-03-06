@@ -1,5 +1,6 @@
 // const bcrypt = require('bcryptjs')
 const db = require('../../db.js')
+const { sendPinnedMessageEmailToGroupTeachersAndStudents } = require('../../utils/pinnedMessageEmail.js')
 
 async function createUser({ email, password, role, name, phoneNumber, grade, major }) {
   // const hash = await bcrypt.hash(password, 10)
@@ -279,6 +280,12 @@ async function createPinnedMessage(groupId, content, adminId) {
     'SELECT id, groupId, senderId, content, createdAt, isPinned, pinnedById, pinnedAt, isPinnedOriginal FROM GroupMessage WHERE groupId = ? AND isPinned = 1 ORDER BY id DESC LIMIT 1',
     [groupId]
   )
+
+  // Best-effort email notification (do not fail request if email fails)
+  try {
+    await sendPinnedMessageEmailToGroupTeachersAndStudents({ groupId, content })
+  } catch (e) {}
+
   return rows[0]
 }
 

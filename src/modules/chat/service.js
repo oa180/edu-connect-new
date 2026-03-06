@@ -1,4 +1,5 @@
 const db = require('../../db.js')
+const { sendPinnedMessageEmailToGroupTeachersAndStudents } = require('../../utils/pinnedMessageEmail.js')
 
 async function getChatUsers(currentUser) {
   if (currentUser.role === 'ADMIN') {
@@ -98,6 +99,12 @@ async function pinGroupMessage(currentUser, groupId, messageId) {
     [messageId, groupId]
   )
   const m = rows[0]
+
+  // Best-effort email notification (do not fail request if email fails)
+  try {
+    await sendPinnedMessageEmailToGroupTeachersAndStudents({ groupId, content: m.content })
+  } catch (e) {}
+
   return {
     id: m.id,
     groupId: m.groupId,

@@ -3,7 +3,7 @@ const openapiSpec = {
   info: {
     title: 'Edu Connect API',
     version: '1.0.0',
-    description: 'REST API for Edu Connect with Auth, RBAC, and Chat',
+    description: 'REST API for Edu Connect with Auth, RBAC, and Chat.\n\nEmail notifications for pinned messages require SMTP env vars: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM.',
   },
   servers: [
     { url: '/api' }
