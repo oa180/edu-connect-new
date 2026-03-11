@@ -2,6 +2,11 @@ const db = require('../db.js')
 const { sendMail } = require('./mailer.js')
 
 async function sendPinnedMessageEmailToGroupTeachersAndStudents({ groupId, content }) {
+  const groupName = await db.query(
+    `SELECT name FROM ChatGroup WHERE id = ?`,
+    [groupId]
+  )
+  
   const users = await db.query(
     `SELECT DISTINCT u.email
      FROM ChatGroupMember m
@@ -13,11 +18,11 @@ async function sendPinnedMessageEmailToGroupTeachersAndStudents({ groupId, conte
   console.log('users', emails)
   if (emails.length === 0) return { sent: false, skipped: true, reason: 'No teacher/student emails found' }
 
-  const subject = 'New pinned message'
-  const text = `A new message was pinned in your group:\n\n${content}`
+  const subject = `New pinned message to your group ${groupName}`
+  const text = `${content}`
 
   // Use BCC to avoid leaking recipients.
-  return sendMail({ bcc: emails, subject, text })
+  return sendMail({ to: emails, subject, text })
 }
 
 module.exports = { sendPinnedMessageEmailToGroupTeachersAndStudents }
