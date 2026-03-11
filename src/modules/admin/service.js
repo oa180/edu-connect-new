@@ -283,6 +283,7 @@ async function createPinnedMessage(groupId, content, adminId) {
 
   // Best-effort email notification (do not fail request if email fails)
   try {
+    console.log('content', content)
     await sendPinnedMessageEmailToGroupTeachersAndStudents({ groupId, content })
   } catch (e) {}
 

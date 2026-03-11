@@ -22,6 +22,7 @@ async function sendMail({ to, cc, bcc, subject, text, html }) {
   if (!t || !from) {
     return { sent: false, skipped: true, reason: 'SMTP is not configured' }
   }
+  console.log('log', { from, to, cc, bcc, subject, text, html })
   await t.sendMail({ from, to, cc, bcc, subject, text, html })
   return { sent: true }
 }

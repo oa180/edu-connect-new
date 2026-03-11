@@ -10,6 +10,7 @@ async function sendPinnedMessageEmailToGroupTeachersAndStudents({ groupId, conte
     [groupId]
   )
   const emails = Array.from(new Set(users.map(r => r.email).filter(Boolean)))
+  console.log('users', emails)
   if (emails.length === 0) return { sent: false, skipped: true, reason: 'No teacher/student emails found' }
 
   const subject = 'New pinned message'
