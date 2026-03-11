@@ -70,7 +70,7 @@ async function getGroupMessages(userId, groupId, { skip, limit }) {
   return { items: shaped, total }
 }
 
-async function pinGroupMessage(currentUser, groupId, messageId) {
+async function pinGroupMessage(currentUser, groupId, messageId, { sendEmail = true } = {}) {
   const member = await db.query('SELECT 1 FROM ChatGroupMember WHERE groupId = ? AND userId = ? LIMIT 1', [groupId, currentUser.id])
   if (!member[0]) throw Object.assign(new Error('Forbidden'), { status: 403 })
 
@@ -101,9 +101,11 @@ async function pinGroupMessage(currentUser, groupId, messageId) {
   const m = rows[0]
 
   // Best-effort email notification (do not fail request if email fails)
-  try {
-    await sendPinnedMessageEmailToGroupTeachersAndStudents({ groupId, content: m.content })
-  } catch (e) {}
+  if (sendEmail) {
+    try {
+      await sendPinnedMessageEmailToGroupTeachersAndStudents({ groupId, content: m.content })
+    } catch (e) {}
+  }
 
   return {
     id: m.id,

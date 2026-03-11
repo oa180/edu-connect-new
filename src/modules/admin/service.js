@@ -270,7 +270,7 @@ async function updateMemberPosting(groupId, userId, { canPost }) {
   return rows[0]
 }
 
-async function createPinnedMessage(groupId, content, adminId) {
+async function createPinnedMessage(groupId, content, adminId, { sendEmail = true } = {}) {
   // Create a new pinned message authored by the admin with isPinnedOriginal = 1
   await db.query(
     'INSERT INTO GroupMessage (groupId, senderId, content, isPinned, pinnedById, pinnedAt, isPinnedOriginal) VALUES (?, ?, ?, 1, ?, NOW(), 1)',
@@ -282,10 +282,12 @@ async function createPinnedMessage(groupId, content, adminId) {
   )
 
   // Best-effort email notification (do not fail request if email fails)
-  try {
-    console.log('content', content)
-    await sendPinnedMessageEmailToGroupTeachersAndStudents({ groupId, content })
-  } catch (e) {}
+  if (sendEmail) {
+    try {
+      console.log('content', content)
+      await sendPinnedMessageEmailToGroupTeachersAndStudents({ groupId, content })
+    } catch (e) {}
+  }
 
   return rows[0]
 }

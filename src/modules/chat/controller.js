@@ -56,7 +56,8 @@ async function pinGroupMessage(req, res, next) {
   try {
     const groupId = parseInt(req.params.groupId, 10)
     const messageId = parseInt(req.params.messageId, 10)
-    const data = await service.pinGroupMessage(req.user, groupId, messageId)
+    const sendEmail = typeof req.body.sendEmail === 'undefined' ? true : !!req.body.sendEmail
+    const data = await service.pinGroupMessage(req.user, groupId, messageId, { sendEmail })
     res.json(data)
   } catch (e) { next(e) }
 }

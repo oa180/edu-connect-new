@@ -107,7 +107,8 @@ async function createPinnedMessage(req, res, next) {
   try {
     const groupId = parseInt(req.params.groupId, 10)
     const { content } = req.body
-    const data = await service.createPinnedMessage(groupId, content, req.user.id)
+    const sendEmail = typeof req.body.sendEmail === 'undefined' ? true : !!req.body.sendEmail
+    const data = await service.createPinnedMessage(groupId, content, req.user.id, { sendEmail })
     res.status(201).json(data)
   } catch (e) { next(e) }
 }

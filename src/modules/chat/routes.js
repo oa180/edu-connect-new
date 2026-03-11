@@ -1,5 +1,5 @@
 const { Router } = require('express')
-const { param } = require('express-validator')
+const { param, body } = require('express-validator')
 const auth = require('../../middlewares/auth.middleware.js')
 const controller = require('./controller.js')
 
@@ -10,7 +10,7 @@ router.get('/private/:userId', [param('userId').isInt()], controller.getPrivateM
 router.get('/groups/:groupId', [param('groupId').isInt()], controller.getGroupMessages)
 router.get('/pins', controller.listPinnedMessages)
 router.get('/groups/:groupId/pin', [param('groupId').isInt()], controller.getPinnedMessageByGroupId)
-router.post('/groups/:groupId/messages/:messageId/pin', [param('groupId').isInt(), param('messageId').isInt()], controller.pinGroupMessage)
+router.post('/groups/:groupId/messages/:messageId/pin', [param('groupId').isInt(), param('messageId').isInt(), body('sendEmail').optional().isBoolean()], controller.pinGroupMessage)
 router.delete('/groups/:groupId/messages/:messageId/pin', [param('groupId').isInt(), param('messageId').isInt()], controller.unpinGroupMessage)
 
 module.exports = router

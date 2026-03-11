@@ -222,6 +222,7 @@ const openapiSpec = {
           { name: 'groupId', in: 'path', required: true, schema: { type: 'integer' } },
           { name: 'messageId', in: 'path', required: true, schema: { type: 'integer' } }
         ],
+        requestBody: { required: false, content: { 'application/json': { schema: { type: 'object', properties: { sendEmail: { type: 'boolean', default: true } } } } } },
         responses: {
           '200': { description: 'OK', content: { 'application/json': { schema: { $ref: '#/components/schemas/PinnedMessage' } } } },
           '400': { description: 'Bad request' },
@@ -362,12 +363,12 @@ const openapiSpec = {
     },
     '/admin/groups/{groupId}/pin': {
       post: {
-        tags: ['Admin'], summary: 'Create a pinned message for the group',
+        tags: ['Admin'], summary: 'Create (pin) a message in a group',
         parameters: [
           { name: 'groupId', in: 'path', required: true, schema: { type: 'integer' } }
         ],
-        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['content'], properties: { content: { type: 'string' } } } } } },
-        responses: { '201': { description: 'Created' } }
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['content'], properties: { content: { type: 'string' }, sendEmail: { type: 'boolean', default: true } } } } } },
+        responses: { '201': { description: 'Pinned message created', content: { 'application/json': { schema: { $ref: '#/components/schemas/PinnedMessage' } } } } }
       }
     },
     '/admin/groups/{groupId}/pin/{messageId}': {
