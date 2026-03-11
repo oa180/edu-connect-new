@@ -6,7 +6,7 @@ async function sendPinnedMessageEmailToGroupTeachersAndStudents({ groupId, conte
     `SELECT name FROM ChatGroup WHERE id = ?`,
     [groupId]
   )
-  
+
   const users = await db.query(
     `SELECT DISTINCT u.email
      FROM ChatGroupMember m
@@ -18,7 +18,7 @@ async function sendPinnedMessageEmailToGroupTeachersAndStudents({ groupId, conte
   console.log('users', emails)
   if (emails.length === 0) return { sent: false, skipped: true, reason: 'No teacher/student emails found' }
 
-  const subject = `New pinned message to your group ${groupName}`
+  const subject = `New pinned message to your group ${groupName[0].name}`
   const text = `${content}`
 
   // Use BCC to avoid leaking recipients.
