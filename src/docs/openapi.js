@@ -372,6 +372,20 @@ const openapiSpec = {
       }
     },
     '/admin/groups/{groupId}/pin/{messageId}': {
+      patch: {
+        tags: ['Admin'], summary: 'Update an originally pinned message in the group',
+        description: 'Updates content for a pinned message only if it was originally created as pinned (isPinnedOriginal=1).',
+        parameters: [
+          { name: 'groupId', in: 'path', required: true, schema: { type: 'integer' } },
+          { name: 'messageId', in: 'path', required: true, schema: { type: 'integer' } }
+        ],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['content'], properties: { content: { type: 'string' }, sendEmail: { type: 'boolean', default: true } } } } } },
+        responses: {
+          '200': { description: 'Updated', content: { 'application/json': { schema: { $ref: '#/components/schemas/PinnedMessage' } } } },
+          '400': { description: 'Bad request' },
+          '404': { description: 'Not found' }
+        }
+      },
       delete: {
         tags: ['Admin'], summary: 'Unpin or delete a specific pinned message in the group',
         description: 'Hard deletes the message if it was originally created as pinned (isPinnedOriginal=1). Rejects request if it is a regular message (isPinnedOriginal=0).',

@@ -113,6 +113,19 @@ async function createPinnedMessage(req, res, next) {
   } catch (e) { next(e) }
 }
 
+async function updatePinnedMessage(req, res, next) {
+  const errors = validationResult(req)
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
+  try {
+    const groupId = parseInt(req.params.groupId, 10)
+    const messageId = parseInt(req.params.messageId, 10)
+    const { content } = req.body
+    const sendEmail = typeof req.body.sendEmail === 'undefined' ? true : !!req.body.sendEmail
+    const data = await service.updatePinnedMessage(groupId, messageId, content, { sendEmail })
+    res.json(data)
+  } catch (e) { next(e) }
+}
+
 async function unpinGroup(req, res, next) {
   const errors = validationResult(req)
   if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
@@ -205,6 +218,7 @@ module.exports = {
   updateGroupSettings,
   updateMemberPosting,
   createPinnedMessage,
+  updatePinnedMessage,
   unpinGroup,
   listPinnedMessages,
   listPinnedMessagesByGroup,

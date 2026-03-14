@@ -12,6 +12,32 @@ async function createUser({ email, password, role, name, phoneNumber, grade, maj
   return rows[0]
 }
 
+async function updatePinnedMessage(groupId, messageId, content, { sendEmail = true } = {}) {
+  const rows = await db.query(
+    'SELECT id, groupId, isPinned, isPinnedOriginal FROM GroupMessage WHERE id = ? AND groupId = ? LIMIT 1',
+    [messageId, groupId]
+  )
+  const msg = rows[0]
+  if (!msg) throw Object.assign(new Error('Not found'), { status: 404 })
+  if (!msg.isPinned) throw Object.assign(new Error('Message is not pinned'), { status: 400 })
+  if (!msg.isPinnedOriginal) throw Object.assign(new Error('Cannot update a regular message via pinned-message update endpoint'), { status: 400 })
+
+  await db.query('UPDATE GroupMessage SET content = ? WHERE id = ? AND groupId = ?', [content, messageId, groupId])
+
+  const outRows = await db.query(
+    'SELECT id, groupId, senderId, content, createdAt, isPinned, pinnedById, pinnedAt, isPinnedOriginal FROM GroupMessage WHERE id = ? AND groupId = ? LIMIT 1',
+    [messageId, groupId]
+  )
+
+  if (sendEmail) {
+    try {
+      await sendPinnedMessageEmailToGroupTeachersAndStudents({ groupId, content })
+    } catch (e) {}
+  }
+
+  return outRows[0]
+}
+
 async function updateUser(id, { email, password, role, name, phoneNumber, grade, major }) {
   const fields = []
   const params = []
@@ -404,6 +430,7 @@ module.exports.removeGroupMember = removeGroupMember
 module.exports.updateGroupSettings = updateGroupSettings
 module.exports.updateMemberPosting = updateMemberPosting
 module.exports.createPinnedMessage = createPinnedMessage
+module.exports.updatePinnedMessage = updatePinnedMessage
 module.exports.unpinGroupMessage = unpinGroupMessage
 module.exports.listPinnedMessagesAdmin = listPinnedMessagesAdmin
 module.exports.listPinnedMessagesByGroupAdmin = listPinnedMessagesByGroupAdmin
